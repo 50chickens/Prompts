@@ -1,0 +1,4 @@
+alsa.net https://github.com/50chickens/alsa.net in branch develop 
+https://github.com/50chickens/JackSharpCore in branch develop. 
+
+tinygain plugin - https://github.com/x42/tinyamp.lv2

@@ -1,0 +1,16 @@
+{
+  "solutionFile": "./Alsionyx.sln",
+  "validate": {},
+  "restore": {},
+  "codeFormat": {},
+  "build": {
+    "configuration": "Debug"
+  },
+  "test": {
+    "configuration": "Debug"
+  },
+  "playwright": {},
+  "coverage": {
+    "configuration": "Debug"
+  }
+}

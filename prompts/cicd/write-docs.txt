@@ -1,0 +1,25 @@
+write a requirements doc that describes .github\workflows\build-test.yml and the referenced gh.ps1, build-test.ps1 and nuget.ps1
+look for the workflow, patterns and conventions that exist in any of the powershell scripts under C:\git\internal\Prompts\examples\cicd and include this information in cicd.md. 
+
+Be very concise. Don't use decorations. Don't explain why - just write rules - things you need to either do and do nots, or names of patterns. code patterns should be super concise also. use code comments to summarize code. eg
+//local variables using configuration object.
+$configuration = get-content ".\build-configuration.json" | convertto-json
+function Do-SomebuildTask($configuration)
+{
+$enabled = $Configuration.enabled
+//use $enabled as local variable.
+}
+Do-SomebuildTask -Confiuguration $configuration
+
+
+This is an example of the the language style i want you to write in:
+
+Use DefaultApplicationBuilder pattern.
+Use nunit for testing framework.
+Use async methods. 
+Use Dependency injection pattern.
+Nunit tests should test primary code paths and use testcases. If you need more than a few test cases, or individual tests for several methods you should split the class up.
+Use extension methods where practical.
+Don't use private classes.
+Don't create empty or low value try catch blocks.
+Create a datestamped json file for recording test results. include metadata about the test - Don't use csv - only json.
