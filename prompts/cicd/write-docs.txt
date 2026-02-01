@@ -1,5 +1,7 @@
-write a requirements doc that describes .github\workflows\build-test.yml and the referenced gh.ps1, build-test.ps1 and nuget.ps1
-look for the workflow, patterns and conventions that exist in any of the powershell scripts under C:\git\internal\Prompts\examples\cicd and include this information in cicd.md. 
+augment the cicd.md docs with additional requirements from C:\git\internal\Prompts\examples\cicd that describes .github\workflows\build-test.yml and the referenced gh.ps1, build-test.ps1 and nuget.ps1 put this into cicd.md. read the existing cicd.md and review the powershell scripts under C:\git\internal\Prompts\examples\cicd. 
+The primary source is cicd.md but should be augmented from patterns in the examples folder. only write requirements which would be generic to any project being built using this cicd pipeline. 
+Don't reference old requirements, patterns or code. Don't mention playwright. 
+The documentation should represent the current state not any previous one. Don't include configuration json examples where examples where the code itself would explain whats required. don't write code examples of how to implement something if the description is sufficient to understand the requirements. 
 
 Be very concise. Don't use decorations. Don't explain why - just write rules - things you need to either do and do nots, or names of patterns. code patterns should be super concise also. use code comments to summarize code. eg
 //local variables using configuration object.
@@ -11,6 +13,8 @@ $enabled = $Configuration.enabled
 }
 Do-SomebuildTask -Confiuguration $configuration
 
+
+##Prompts
 
 This is an example of the the language style i want you to write in:
 

@@ -74,7 +74,7 @@ try {
     
     # Call dotnet build with the CreateNugetPackages target from build.xml
     Write-Host "Building NuGet packages via MSBuild target..."
-    & dotnet build build.xml -t:CreateNugetPackages -p:Configuration=$($config.build.configuration)
+    & dotnet build build.xml -t:CreateNugetPackages
     
     if ($LASTEXITCODE -ne 0) {
         throw "NuGet package creation failed with exit code $LASTEXITCODE"

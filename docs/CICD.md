@@ -1,118 +1,112 @@
-# GitHub Actions CI/CD Pipeline Requirements
+# CI/CD Pipeline Requirements
 
-## build-and-test.yml Workflow
+## Script Initialization
 
-Trigger on push only.
-Run on ubuntu-latest.
-Setup .NET 9.0.x.
-Run build-test.ps1 from src directory. 
-Upload TestResults artifacts on always. 
-Upload code-coverage artifacts on always.
-No matrix jobs. Single job: BuildAndTest.
-Set shell to pwsh for all steps.
-Use actions/checkout@v4.
-Use actions/setup-dotnet@v4.
-Use actions/upload-artifact@v4.
-Set 1 week expiry on artifacts if possible. 
-
-
-## gh.ps1 Script
-
-The intent is to simulate the build process in github locally. 
-The order is: checkout, build-test.ps1, nuget. 
-
-## build-test.ps1
-
-Load build-configuration.json at start.
-Set-Location to script directory.
-Each build phase is a function with parameter [PSCustomObject]$configuration.
-Extract configuration values to local variables at function start.
-Use $LASTEXITCODE to check command success. Exit with code 1 on failure.
-Do not use try/catch blocks.
-Don't use colour or decorations in script.
-don't hardcode magic strings, or variables into strings in functions eg dotnet build "solution1.sln". 
-use $configuration for variables that are specific to the application that is being built - eg solution1.sln for solution name. 
-for build-test.ps1 variables we might want to change from build to build (eg changing log verbosity) should have a script parameter - eg -LogLevel normal. these values should override the values of the $configuration object.
-for magic strings/constants etc append the $configuration object with them using a function like:
-
-Add-BuildConfigurationConstants($configuration)
-{
-    $additionalBuildParameters = @()
-    $additionalBuildParameters += [PSCustomObject]@{
-                $ApiMaxWaitTime = 60
-    }
-    $additionalBuildParameters |%{
-        //add the pipeline objects property and value to the $configuration object here. 
-    }
-    return $configuration.
-}
-$configuration = Add-BuildConfigurationConstants
-
-Configuration variable pattern:
+Set param block at top, then `$ErrorActionPreference = 'Stop'`.
+Load build-configuration.json with `-Raw` flag then pipe to `ConvertFrom-Json`.
+No try/catch blocks except nuget.ps1 (for cleanup via finally).
 ```powershell
-$enabled = $configuration.section.enabled
-$value = $configuration.section.property
-$solutionFile = $configuration.solutionFile
+param([string]$ConfigurationFile)
+$ErrorActionPreference = 'Stop'
+$config = Get-Content $ConfigurationFile -Raw | ConvertFrom-Json
 ```
 
-All functions follow this pattern - 
+## Function Pattern
+
+All build functions use consistent signature with single Configuration parameter:
 ```powershell
-
-function Invoke-BuildPhase($configuration) {
-    $enabled = $configuration.phase.enabled
-    if (-not $enabled) { return }
-    write-host "---- Invoke-function1 started ----" 
-    dotnet command
-    if ($LASTEXITCODE -ne 0) { exit 1 }
-    write-host "---- Invoke-function1 completed ----"
-}
-
-```
-
-don't wrap main orchestration in try/catch. eg 
-
-Invoke-Function1(){
-
-}
-Invoke-Function2(){
+//Extract config values from $Configuration object.
+function Invoke-BuildPhase {
+    param([object]$Configuration)
     
+    Write-Host "Phase starting..."
+    $suppressWarnings = $Configuration.build.suppressWarnings
+    dotnet command $solutionFile
+    
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "ERROR: Phase failed."
+        exit $LASTEXITCODE
+    }
 }
-Invoke-Function1
-Invoke-Function2
+```
 
-Main execution calls functions sequentially. Check solution file exists before starting.
-Exit 0 on success, exit 1 on any failure.
+Parameter handling:
+- Use `param([object]$Configuration)` signature only. Access solution file from script scope.
+- Extract configuration values to local variables at function start.
+- Use splatting for command arguments: `dotnet build @buildArgs`.
+- Check `$LASTEXITCODE` after every external command.
+- Exit with `$LASTEXITCODE` on failure (preserves exit code).
+- Use `Write-Error` for error messages.
+
+## Main Execution
+
+Call functions sequentially in order with no try/catch block.
+```powershell
+Invoke-ValidateProjectReferences -Configuration $config
+Invoke-RestoreDependencies -Configuration $config
+Invoke-CodeFormatCheck -Configuration $config
+Invoke-BuildSolution -Configuration $config
+Invoke-RunTests -Configuration $config
+exit 0
+```
+
+Exit 0 on success. Exit 1 on any failure (no partial success).
+
+## Shell Utilities
+
+Do not use head, tail, grep, or stdout redirection in CI scripts.
+Run orchestration scripts directly: `.\gh.ps1` without piping output.
+
+## Build Phases
+
+Invoke-ValidateProjectReferences: Verify all .csproj files listed in .sln.
+Invoke-RestoreDependencies: `dotnet restore`. Apply suppressWarnings from config.
+Invoke-CodeFormatCheck: `dotnet format --verify-no-changes`.
+Invoke-BuildSolution: `dotnet build`. Apply config verbosity and suppressWarnings.
+Invoke-RunTests: `dotnet test`. Apply config verbosity.
 
 ## nuget.ps1
 
+Windows only. Do not run on GitHub Actions.
 
-## build-configuration.json
+Verify build.xml exists in src directory.
 
-Root level: solutionFile property.
-Verbosity values: minimal, normal. default is minimal.
-Don't ever specify build configuration - eg Debug/Release.
-don't use failOnError type conditional.
+Verify nuget source using `nuget source list`. Check for LocalRepo source.
+If missing or points to wrong path, create or update with `nuget source add/update`.
+```powershell
+//Check nuget source and update if needed.
+$nugetRepositoryName = "LocalRepo"
+$nugetRepoPath = "c:\dev\nuget-local-repo"
+& nuget source list
+& nuget source add -Name $nugetRepositoryName -Source $nugetRepoPath
+```
 
+Build NuGet packages:
+```powershell
+//build.xml MSBuild target creates packages.
+//Define ProjectsForNugetPackaging item group in build.xml.
+//<ProjectsForNugetPackaging Include="Project.csproj" />
+//<Exec Command="dotnet pack %(ProjectsForNugetPackaging.Identity) --output $(NugetOutputPath) /p:PackageVersion=$(NugetVersion)" />
+//Version format: 1.0.yyMMddHHmmss (timestamp).
+& dotnet build build.xml -t:CreateNugetPackages -p:Configuration=$($config.build.configuration)
+```
 
-Phases: lint, validate, restore, build, test including generating coverage.
-Test section: include collectCoverage flag as default (dont include in build-configuration.json).
+Check `$LASTEXITCODE` after build. Throw on failure.
+Collect created .nupkg files from nupkgOut folder.
+Push packages to LocalRepo: `dotnet nuget push $pkgPath --source $nugetRepositoryName`.
+Use try/catch at top level with finally block for cleanup and location restoration.
+Exit 0 on success, exit 1 on failure.
 
-## Build Phases (Execution Order)
-These should all cause github actions to fail/stop processing if any errors. 
-Invoke-CodeLint: dotnet format --verify-no-changes. Fails build if formatting issues.
-Invoke-ValidateProjectReferences: dotnet sln list. Validates project structure.
-Invoke-RestoreDependencies: dotnet restore. Fail if restore fails.
-Invoke-BuildSolution: dotnet build. 
-Invoke-RunTests: dotnet test with trx logger. Collect coverage for c# projects.
+## gh.ps1 Script
 
-## Artifact Collection
+Simulate GitHub Actions locally.
+Load configuration from ../src/build-configuration.json.
+Navigate to src directory with `Push-Location`.
+Execute build phases and nuget operations.
+`Pop-Location` on completion.
 
-TestResults: **/**/TestResults/**/*
-Coverage: **/**/coverage.json
-Output format: trx for test results, json for coverage.
+## Test Results & Coverage
 
-## Exit Codes
-
-0: All steps succeeded.
-1: Any step failed. Script stops immediately.
-No partial success. All-or-nothing execution.
+Test results: JSON format with metadata (not CSV).
+Coverage: JSON format.
+Datestamp test results files with execution metadata.
