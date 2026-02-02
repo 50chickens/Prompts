@@ -3,7 +3,7 @@
 # All configuration comes from build-configuration.json (single source of truth).
 
 $ErrorActionPreference = 'Stop'
-$nugetRepositoryName = "LocalRepo"
+$nugetRepositoryName = "github"
 $nugetConfigFileName = "nuget.config"
 $nugetRepoPath = "c:\dev\nuget-local-repo"
 $buildConfigFileName = "build-configuration.json"
