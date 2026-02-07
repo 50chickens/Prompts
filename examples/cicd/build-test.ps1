@@ -234,4 +234,3 @@ Invoke-CodeCoverage -Config $config.coverage -SolutionFile $config.solutionFile
 
 Write-Host "=== Build Complete ==="
 exit 0
-

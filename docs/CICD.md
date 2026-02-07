@@ -4,7 +4,7 @@
 
 Set param block at top, then `$ErrorActionPreference = 'Stop'`.
 Load build-configuration.json with `-Raw` flag then pipe to `ConvertFrom-Json`.
-No try/catch blocks except nuget.ps1 (for cleanup via finally).
+No try/catch blocks except cleanup via finally only if required. 
 ```powershell
 param([string]$ConfigurationFile)
 $ErrorActionPreference = 'Stop'
