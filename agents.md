@@ -43,9 +43,16 @@ Only use nullable if this is most optimal.
 Testing.
 Create unit test to verify DI container can resolve all services.
 Use Nunit for tests. Testcases should handle multiple scenarios for single method. 
-Record test metadata in datestamped JSON files. Include test name, duration, status, environment. DO NOT use CSV.
+Use NSubstitute for all interface mocking.
 Follow the project's own conventions first, then common C# conventions.
 Keep naming, formatting, and project structure consistent.
+Tests must use primary code paths only.
+No timing-dependent assertions. No Stopwatch usage.
+No Task.Delay assertions in tests.
+Use async tests unless code path is not async.
+use [TestCases] where possible.
+Mock all external dependencies: file I/O, network, logging.
+Tests should be deterministic and fast.
 
 Useless/bad code and/or comments.
 

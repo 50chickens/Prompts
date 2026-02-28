@@ -1,0 +1,81 @@
+REQUEST FLOW EXAMPLES
+
+PATTERN: Mock HTTP Server Flow
+
+When HttpClient sends request:
+1. Request intercepted by MockHttpMessageHandler
+2. Handler extracts method (GET/POST/etc) and route
+3. Handler looks up route in registry
+4. Registry lookup returns handler function
+5. Handler invoked with IServiceProvider
+6. Handler executes:
+   a. Resolve controller from DI container
+   b. Extract route parameters from URI path
+   c. Deserialize request body (if POST/PUT/etc)
+   d. Call controller.Method(params)
+   e. Await if async
+   f. Return controller's IActionResult
+7. IActionResult serialized to JSON
+8. Response returned to client
+
+EXAMPLE 1: GET ENDPOINT
+
+Controller Method
+[HttpGet("{name}")]
+public IActionResult GetByName(string name)
+{
+    return Ok(new BackendInfo { Name = name });
+}
+
+Request Flow
+- Client: GET /api/backends/soundflow
+- MockHttpServer: Lookup (GET, "/api/backends/{name}")
+- Found: Handler function
+- Handler executes:
+  * Resolves BackendsController from DI
+  * Extracts {name} = "soundflow" from URI
+  * Calls GetByName("soundflow")
+  * Gets Ok(BackendInfo) from controller
+- Returns Ok with JSON body
+- Client receives 200 OK + BackendInfo JSON
+
+Key Point: Handler doesn't generate response; controller does. Handler just invokes controller method and captures result.
+
+EXAMPLE 2: POST ENDPOINT WITH REQUEST BODY
+
+Controller Method
+public async Task<IActionResult> ConnectPorts(
+    string pedalboardId, 
+    [FromBody] ConnectPortsRequest request)
+{
+    var result = await _service.Connect(pedalboardId, request);
+    return Ok(result);
+}
+
+Request Flow
+- Client: POST /api/pedalboards/board-123/connections 
+  Body: { "sourcePortId": "in1", "destinationPortId": "out1" }
+- MockHttpServer: Lookup (POST, "/api/pedalboards/{pedalboardId}/connections")
+- Found: Handler function
+- Handler executes:
+  * Resolves PedalboardConnectionsController from DI
+  * Extracts {pedalboardId} = "board-123" from URI
+  * Deserializes body JSON to ConnectPortsRequest
+  * Calls await ConnectPorts("board-123", request)
+  * Controller calls _service.Connect() (which is mocked for test)
+  * Gets Ok(result) from controller
+- Returns Ok with JSON body
+- Client receives 200 OK + result JSON
+
+Key Point: Service is mocked (test setup). Handler just invokes controller; controller invokes service. Test controls behavior via mock setup.
+
+GENERIC PATTERN
+All endpoints follow same flow regardless of:
+- HTTP method (GET/POST/PUT/DELETE/PATCH)
+- Parameter types (primitives, complex objects)
+- Return types (sync/async, success/error responses)
+- Number of dependencies (service uses 1 or 10 injected services)
+
+Handler signature is always: Func<IServiceProvider, Task<IActionResult>>
+No type casting, no object parameters, no reflection at call time.
+Parameter extraction and method invocation handled generically at handler creation time.
