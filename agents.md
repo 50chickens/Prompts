@@ -24,7 +24,7 @@ Use extension methods for service registration. eg .AddConsoleApp
 Coding patterns.
 Apply SOLID principles.
 Classes should have a single concern and only a primary code path. If a class has more than concern or more than one primary code path consider it for refacting into two classes. 
-Don't ever use dynamic types for any reason.
+Do not create dynamic types or records for any reason at any time.
 Use file-scoped namespaces.
 Use interfaces in Core layer. Implementations in Infrastructure or Application layers. Core has zero external dependencies.
 Use DefaultApplicationBuilder pattern for DI setup. Register services in logical order: logging first, then infrastructure, then application services.
