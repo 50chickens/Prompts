@@ -53,7 +53,7 @@ Use async tests unless code path is not async.
 use [TestCases] where possible.
 Mock all external dependencies: file I/O, network, logging.
 Tests should be deterministic and fast.
-Don't create unit tests that test for DoesNotThrow(). this are meaningless tests. When testing a method we should be testing for a return value which represents the main function of the method. 
+Don't create unit tests that test for DoesNotThrow(). this are meaningless tests. When testing a method we should be testing the return value which represents the main function of the method. 
 Useless/bad code and/or comments.
 
 DON'T add interfaces/abstractions unless used for external dependencies or testing.
