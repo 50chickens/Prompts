@@ -8,7 +8,6 @@ Dont add fallbacks, work arounds, graceful handling, verbose error handling. Don
 If the user says to do something, or stop doing something add that correction to the agents.md file. 
 Do not use decorations, bullet points, indenting in code or documentation. Only add important detail that is not specific to this repo in this file. This file is to improve the quality of any code - not just that which is specific to this repo.
 
-
 Error handling.
 DO NOT create empty or low-value try-catch blocks. Let exceptions propagate unless specifically handling expected conditions.
 Use ArgumentNullException.ThrowIfNull(x) for null checks.
@@ -70,6 +69,10 @@ DIRECT EDITING permitted only for changing versions of existing packages.
 VERSION UPDATES require verification: target version exists, determine if managed per-project or centrally, update version, run dotnet restore.
 do not create nuget.config files in the project directory. if the nuget source does not exist you should never create it. The build should fail. NuGet sources are configured in the user's global config. Never create project-level NuGet.Config files.
 Do not append -Debug or -Release suffixes to package names.
+
+Repository structure guidance.
+
+The setup repository contains shared audio infrastructure code including device abstractions, routing, and plugin loading. The ipscm repository contains generic infrastructure shared across all projects: logging, DI configuration, HTTP utilities, and other cross-cutting concerns. The alsionyx repository contains end applications that use setup and ipscm libraries. When creating new projects determine which category they belong to: if it is audio-specific put it in setup, if it is generic infrastructure put it in ipscm, if it is an application put it in alsionyx.
 
 Test Configuration
 

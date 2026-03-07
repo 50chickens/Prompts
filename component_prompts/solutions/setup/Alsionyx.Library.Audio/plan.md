@@ -3,7 +3,7 @@ Project and Class Summary
 Alsionyx.Library.Audio: IAudioDevice, IConnectionMatrix, PluginParameter, PortConnection, ConnectionMatrix, ChannelMapper
 Alsionyx.Library.PedalBoard: IPedalboard, Pedalboard, PedalboardDescriptor, IPedalboardService, PedalboardService
 Alsionyx.Library.Audio.Plugins: ILv2PluginLoader, Lv2PluginInfo, Lv2PluginLoader, TinyGainPlugin
-Alsionyx.Library.Audio.SoundFlow: SoundFlowAudioDevice
+Alsionyx.Library.Audio.SoundFlow: SoundFlowAudioDevice for discovering and routing audio through system audio devices using the SoundFlow library
 Alsionyx.Services.Audio.Plugins: IPluginRepository
 
 
@@ -134,6 +134,11 @@ public class SoundFlowAudioDevice : IAudioDevice
     public IReadOnlyList<string> OutputPorts => throw new NotImplementedException();
     public Task InitializeAsync() => throw new NotImplementedException();
     public Task StartAsync() => throw new NotImplementedException();
+}
+
+public class SoundFlowAudioRouter
+{
+    public Task RouteAudioAsync(string inputDeviceId, string outputDeviceId, IAudioDevice plugin) => throw new NotImplementedException();
 }
 
 
