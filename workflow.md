@@ -10,6 +10,18 @@ Setup contains audio-specific infrastructure including device abstractions, audi
 Alsionyx is the end-user application layer. It consumes libraries from both Ipscm and Setup, contains the console app for LV2 plugin loading, and includes offline audio verification services. Alsionyx does not publish NuGet packages (createNugetPackages: false in CI config).
 All three repos use the develop branch for active development. Each repo has GitHub Actions CI configured.
 
+## iteration & testing process:
+the iteration process is: 
+    - gather requirements
+    - make changes.
+    - run all gh.ps1 scripts in order to verify code builds and tests ok before doing any commits. 
+    - git commit the changes.
+    - verify github actions succcess.
+Code formatting errors (WHITESPACE) must be fixed. Run dotnet format on the solution, commit the formatting changes, and push again.
+If tests fail locally, examine the NUnit output. Tests must be deterministic and fast. No timing assertions, no Task.Delay in test logic, and no tests for DoesNotThrow() (meaningless).
+When pushing to github check workflow status: gh run list --repo $repoName --limit 1 --json conclusion. If failure, get logs: gh run view <runId> --repo $repoName  --log-failed.
+
+
 ## local testing, git, github workflow.
 
 Before pushing any changes, always run the local build script first. Each repo has a /ci/gh.ps1 (or equivalent) which orchestrates the full build pipeline locally. Run this from the ci directory: pwsh ./gh.ps1. gh.ps1 will switch to the folder that it lives in and then all files/folders are relative to that.
@@ -45,17 +57,6 @@ The three repos have cross-repo NuGet dependencies. GitHub Packages restricts pr
 If local gh.ps1 passes but GitHub Actions fails, the issue is usually package permissions or a transitive dependency not found. Check the Actions log for 403 errors and apply fixes to Package settings.
 NuGet Package Permissions.
 When this repo depends on NuGet packages hosted in GitHub Packages from another private repository the GitHub Actions workflow needs proper permissions. The workflow must have permissions: packages: write to authenticate with the GitHub Packages NuGet source. The GITHUB_TOKEN passed to dotnet nuget add source requires read access to the external packages. If builds fail with 403 Forbidden errors when restoring packages, verify repository access: the user running the build must have access to the source repository, or the packages must be published as public. To verify package access without fixing, use: gh api -H "Accept: application/vnd.github+json" "/repos/50chickens/REPO/packages?package_type=nuget" or check the workflow logs for authentication errors. 
-
-## iteration & testing process:
-the iteration process is: 
-    - gather requirements
-    - make changes
-    - run each gh.ps1 in order to verify code builds and tests ok.
-    - git commit the changes.
-    - verify github actions succcess.
-Code formatting errors (WHITESPACE) must be fixed. Run dotnet format on the solution, commit the formatting changes, and push again.
-If tests fail locally, examine the NUnit output. Tests must be deterministic and fast. No timing assertions, no Task.Delay in test logic, and no tests for DoesNotThrow() (meaningless).
-When pushing to github check workflow status: gh run list --repo $repoName --limit 1 --json conclusion. If failure, get logs: gh run view <runId> --repo $repoName  --log-failed.
 
 ## Common issues and fixes.
 Build failure with error NU1301 and 403 Forbidden means the consuming repo does not have read access to a private package. Check the package name in the error, go to its GitHub Package page, and add the consuming repo's read access. Re-run the workflow after granting access.
