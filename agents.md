@@ -210,3 +210,19 @@ $configurations |%{
     Invoke-RestoreDependencies -configuration $_
     Invoke-CodeFormat -configuration $_
 }
+
+Cross-repo package permissions model.
+
+Private GitHub Packages are only accessible by the repo that published them when using GITHUB_TOKEN. Any other repo's CI will get a 403 when restoring those packages unless explicit access is granted.
+
+Fix: In the package settings on GitHub, under Manage Actions access, add each repo that needs read access. This is done per-package.
+
+The authoritative source of truth for which repos need access to which packages is /home/pistomp/git/internal/repoowners/package-permissions.json. This lists every private package, who published it, and which repos need access. Keep this file updated whenever new packages are added or new cross-repo dependencies are introduced.
+
+The repoowners repo contains a GitHub Action that reads this JSON and calls the GitHub API to apply the permissions programmatically so they do not need to be set manually per package.
+
+IMPORTANT: The GitHub REST API does NOT expose the Manage Actions access feature for NuGet packages. NuGet packages are repository-scoped and can only have their visibility changed (public/private) via the API. Granting specific repo access via Manage Actions access is UI-only. For each package needing cross-repo access, go to: https://github.com/users/50chickens/packages/nuget/package/PACKAGE_NAME -> Package settings -> Manage Actions access -> Add repository -> Role: Read.
+
+To verify current access for a package: gh api /user/packages/nuget/PACKAGE_NAME
+To check all packages: gh api "/users/50chickens/packages?package_type=nuget"
+The gh CLI requires the read:packages and write:packages scopes to manage package permissions.
