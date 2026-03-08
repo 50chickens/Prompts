@@ -8,7 +8,7 @@ Dont add fallbacks, work arounds, graceful handling, verbose error handling. Don
 If the user says to do something, or stop doing something add that correction to the agents.md file. 
 Do not use decorations, bullet points, indenting in code or documentation. Only add important detail that is not specific to this repo in this file. This file is to improve the quality of any code - not just that which is specific to this repo.
 
-Error handling.
+## Error handling.
 DO NOT create empty or low-value try-catch blocks. Let exceptions propagate unless specifically handling expected conditions.
 Use ArgumentNullException.ThrowIfNull(x) for null checks.
 Use string.IsNullOrWhiteSpace(x) for strings.
@@ -16,14 +16,19 @@ Guard early. Avoid blanket !.
 Choose precise exception types: ArgumentException, InvalidOperationException.
 No silent catches. Don't swallow errors. Log and rethrow or bubble up.
 
-Software architecture.
+## Software architecture.
 When creating a new console app, or webapi use DefaultApplicationBuilder or WebApplicationHostBuilder patterns. 
 Use extension methods for service registration. eg .AddConsoleApp
 
-Coding patterns.
-Apply SOLID principles.
+## c# Coding patterns.
+
+Core interfaces and abstractions are in the Core layer and have zero external dependencies beyond what the Core layer provides. Implementations go in Infrastructure (for lower-level plumbing) or Application (for business logic) layers.
+Use SOLID principles and extension methods where practical. DefaultApplicationBuilder pattern for DI setup.
+Services use constructor injection for all dependencies. No service locators.
+Logging uses ILog<T> injected via constructor. Never use LogManager or static logger instances.
 Classes should have a single concern and only a primary code path. If a class has more than concern or more than one primary code path consider it for refacting into two classes. 
-Do not create dynamic types or records for any reason at any time.
+Each public class has one primary code path. If a class has multiple concerns, split it into separate classes before adding more logic.
+Do not create dynamic types or records for any reason at any time. prefer c# native types - eg int over any native types - eg uint.
 Use file-scoped namespaces.
 Use interfaces in Core layer. Implementations in Infrastructure or Application layers. Core has zero external dependencies.
 Use DefaultApplicationBuilder pattern for DI setup. Register services in logical order: logging first, then infrastructure, then application services.
@@ -39,97 +44,7 @@ Return Task<T> from services.
 Never use blocking calls like Wait() or Result.
 Only use nullable if this is most optimal.
 
-Testing.
-Create unit test to verify DI container can resolve all services.
-Use Nunit for tests. Testcases should handle multiple scenarios for single method. 
-Use NSubstitute for all interface mocking.
-Follow the project's own conventions first, then common C# conventions.
-Keep naming, formatting, and project structure consistent.
-Tests must use primary code paths only.
-No timing-dependent assertions. No Stopwatch usage.
-No Task.Delay assertions in tests.
-Use async tests unless code path is not async.
-use [TestCases] where possible.
-Mock all external dependencies: file I/O, network, logging.
-Tests should be deterministic and fast.
-Don't create unit tests that test for DoesNotThrow(). this are meaningless tests. When testing a method we should be testing the return value which represents the main function of the method. 
-Useless/bad code and/or comments.
-
-DON'T add interfaces/abstractions unless used for external dependencies or testing.
-Don't wrap existing abstractions.
-Keep names consistent. 
-Don't add unused methods/params.
-When fixing one method, check siblings for the same issue.
-Reuse existing methods.
-
-Nuget packages & versions etc.
-
-NEVER directly edit .csproj or Directory.Packages.props to add or remove packages. Use dotnet add/remove commands.
-DIRECT EDITING permitted only for changing versions of existing packages.
-VERSION UPDATES require verification: target version exists, determine if managed per-project or centrally, update version, run dotnet restore.
-do not create nuget.config files in the project directory. if the nuget source does not exist you should never create it. The build should fail. NuGet sources are configured in the user's global config. Never create project-level NuGet.Config files.
-Do not append -Debug or -Release suffixes to package names.
-
-Repository structure guidance.
-
-The setup repository contains shared audio infrastructure code including device abstractions, routing, and plugin loading. The ipscm repository contains generic infrastructure shared across all projects: logging, DI configuration, HTTP utilities, and other cross-cutting concerns. The alsionyx repository contains end applications that use setup and ipscm libraries. When creating new projects determine which category they belong to: if it is audio-specific put it in setup, if it is generic infrastructure put it in ipscm, if it is an application put it in alsionyx.
-
-Test Configuration
-
-Use NUnit and NSubstitute for testing frameworks.
-Tests must use primary code paths only. Use test cases where possible. If a test class has more than more than 2 tests analyze whether you should split the class or not.
-No timing-dependent assertions. No Stopwatch usage.
-No Task.Delay assertions in tests.
-Use async tests unless code path is not async.
-Use [TestCases] where possible.
-Mock all external dependencies: file I/O, network, logging.
-Tests should be deterministic and fast.
-Record test metadata in datestamped JSON files with test name, duration, status, environment. DO NOT use CSV.
-
-
-powershell/CI pipeline architecture.
-
-repository layout:
-
-/ (repository root)
-/ci
-    /ci/gh.ps1 - only run in local development environment. do not reference in github action.
-    /ci/build-test.ps1 - called from github action with only -ConfigurationFolder configs
-    /ci/configs - contains 1 json file with the same name as the visual studio solution it relates to. only contains configuration that is specific to that solution - eg solution name. 
-/src - the top level folder for either the solution or solutions. 
-
-build/deployment specific guidelines.
-
-Github action guidelines.
-
-A github action should have only two steps -
-dotnet source add. 
-built-test.ps1 -configurationFolder $configs.
-Create NuGet source in GitHub Actions workflow, not in gh.ps1, to allow -NugetSourceName parameter override. 
-
-NuGet Package Permissions.
-When this repo depends on NuGet packages hosted in GitHub Packages from another private repository the GitHub Actions workflow needs proper permissions. The workflow must have permissions: packages: write to authenticate with the GitHub Packages NuGet source. The GITHUB_TOKEN passed to dotnet nuget add source requires read access to the external packages. If builds fail with 403 Forbidden errors when restoring packages, verify repository access: the user running the build must have access to the source repository, or the packages must be published as public. To verify package access without fixing, use: gh api -H "Accept: application/vnd.github+json" "/repos/50chickens/REPO/packages?package_type=nuget" or check the workflow logs for authentication errors. 
-
-When running locally use two powershell files - 
-gh.ps1 and build-test.ps1. gh.ps1 should call build-test.ps1 with -nugetPackageSourceName "local-nuget-repo".
-gh.ps1 should not test for the nuget repo to exist. it should fail during the restore process.
-
-dotnet guidelines.
-Only use Debug for dotnet build configurations. 
-pass the buildConfiguration parameter to build.xml to include it in the msbuild task that creates the nuget package. this build configuration value should be added as a nuget package tag.
-
-
-guidelines relating to build-test.ps1:
-
-build-test.ps1 should only have 1 script parameter -nugetPackageSourceName. It should have a default name of github in build-test.ps1.
-build-test.ps1 should live in git repository root under the ci folder.  
-build-test.ps1 should generate a BuildNumber-based version which is then passed to build.xml as a parameter. BuildNumber uses ticks: $([System.DateTime]::UtcNow.Ticks.ToString('D').Substring(0, 9)). NugetVersion=$(MajorVersion).$(MinorVersion).$(BuildNumber). Do not append -Debug or -Release suffixes to package names. Clean version numbers only.
-when calling any command lines tools such as dotnet or nuget - use logging level minimum but make the logging level a script level variable so that if additional logging is required it is a 1 line change. 
-By default the logging level should be minimal. 
-After editing any C# source files run dotnet format <solution> before finishing. The CI pipeline runs dotnet format --verify-no-changes and will fail on whitespace errors.
-
 # Generic powershell coding techniques.
-General powershell code & scripting guidelines.
 Only use approved verbs for function names.
 Prefer powershell modules over invoking any command line tools. If there are powershell modules that can be more natural to execute them in powershell and they do not exist they can be installed. 
 Assume that you are running on powershell 7 or above always unless i tell you. Don't add any forward or backwards compatbility code for powershell 5.
@@ -156,6 +71,83 @@ Do not use head, tail, grep, pipe, redirection, select-object, or Select-String 
 Do not write text/json/other files onto disk for debugging purposes. Errors should be diagnosable only through the script logs although it may require increasing the lo verbosity to do that.
 Refactor repeated sequences into functions: If the main execution contains repeated statement sequences (like multiple invocations or load-then-process patterns), extract them into helper functions. Each helper should perform one logical operation: load config, run pipeline, process batch, etc.
 Powershell functions should have one and only 1 purpose. 
+
+
+## Testing guidelines.
+Use NUnit and NSubstitute for testing frameworks. Create unit tests to verify the DI container can resolve all services.
+Create unit test to verify DI container can resolve all services.
+Use Nunit for tests. Testcases should handle multiple scenarios for single method. 
+Use NSubstitute for all interface mocking.
+Follow the project's own conventions first, then common C# conventions.
+Keep naming, formatting, and project structure consistent.
+Tests must use primary code paths only.
+No timing-dependent assertions. No Stopwatch usage.
+No Task.Delay assertions in tests.
+Use async tests unless code path is not async.
+use [TestCases] where possible.
+Mock all external dependencies: file I/O, network, logging.
+Tests should be deterministic and fast.
+Don't create unit tests that test for DoesNotThrow(). this are meaningless tests. When testing a method we should be testing the return value which represents the main function of the method. 
+DON'T add interfaces/abstractions unless used for external dependencies or testing.
+Don't wrap existing abstractions.
+Keep names consistent. 
+Don't add unused methods/params.
+When fixing one method, check siblings for the same issue.
+Reuse existing methods.
+
+## Nuget packages & versions etc.
+
+NEVER directly edit .csproj or Directory.Packages.props to add or remove packages. Use dotnet add/remove commands.
+DIRECT EDITING permitted only for changing versions of existing packages.
+VERSION UPDATES require verification: target version exists, determine if managed per-project or centrally, update version, run dotnet restore.
+do not create nuget.config files in the project directory. if the nuget source does not exist you should never create it. The build should fail. NuGet sources are configured in the user's global config. Never create project-level NuGet.Config files.
+Do not append -Debug or -Release suffixes to package names.
+
+## Test Configuration
+
+Use NUnit and NSubstitute for testing frameworks.
+Tests must use primary code paths only. Use test cases where possible. If a test class has more than more than 2 tests analyze whether you should split the class or not.
+No timing-dependent assertions. No Stopwatch usage.
+No Task.Delay assertions in tests.
+Use async tests unless code path is not async.
+Use [TestCases] where possible.
+Mock all external dependencies: file I/O, network, logging.
+Tests should be deterministic and fast.
+Record test metadata in datestamped JSON files with test name, duration, status, environment. DO NOT use CSV.
+
+## powershell/CI pipeline architecture.
+
+repository layout:
+
+/ (repository root)
+/ci
+    /ci/gh.ps1 - only run in local development environment. do not reference in github action.
+    /ci/build-test.ps1 - called from github action with only -ConfigurationFolder configs
+    /ci/configs - contains 1 json file with the same name as the visual studio solution it relates to. only contains configuration that is specific to that solution - eg solution name. 
+/src - the top level folder for either the solution or solutions. 
+
+build/deployment specific guidelines.
+
+## Github action guidelines.
+
+A github action should have only two steps -
+    dotnet source add. 
+    built-test.ps1 -configurationFolder $configs.
+Create NuGet source in GitHub Actions workflow, not in gh.ps1, to allow -NugetSourceName parameter override. 
+
+## dotnet guidelines.
+Only use Debug for dotnet build configurations. 
+Pass the buildConfiguration parameter to build.xml to include it in the msbuild task that creates the nuget package. this build configuration value should be added as a nuget package tag.
+
+## guidelines relating to build-test.ps1:
+
+build-test.ps1 should only have 1 script parameter -nugetPackageSourceName. It should have a default name of github in build-test.ps1.
+build-test.ps1 should live in git repository root under the ci folder.  
+build-test.ps1 should generate a BuildNumber-based version which is then passed to build.xml as a parameter. BuildNumber uses ticks: $([System.DateTime]::UtcNow.Ticks.ToString('D').Substring(0, 9)). NugetVersion=$(MajorVersion).$(MinorVersion).$(BuildNumber). Do not append -Debug or -Release suffixes to package names. Clean version numbers only.
+when calling any command lines tools such as dotnet or nuget - use logging level minimum but make the logging level a script level variable so that if additional logging is required it is a 1 line change. 
+By default the logging level should be minimal. 
+After editing any C# source files run dotnet format <solution> before finishing. The CI pipeline runs dotnet format --verify-no-changes and will fail on whitespace errors.
+
 
 An example of existing pattern which meets these guidelines is:
 
@@ -210,19 +202,3 @@ $configurations |%{
     Invoke-RestoreDependencies -configuration $_
     Invoke-CodeFormat -configuration $_
 }
-
-Cross-repo package permissions model.
-
-Private GitHub Packages are only accessible by the repo that published them when using GITHUB_TOKEN. Any other repo's CI will get a 403 when restoring those packages unless explicit access is granted.
-
-Fix: In the package settings on GitHub, under Manage Actions access, add each repo that needs read access. This is done per-package.
-
-The authoritative source of truth for which repos need access to which packages is /home/pistomp/git/internal/repoowners/package-permissions.json. This lists every private package, who published it, and which repos need access. Keep this file updated whenever new packages are added or new cross-repo dependencies are introduced.
-
-The repoowners repo contains a GitHub Action that reads this JSON and calls the GitHub API to apply the permissions programmatically so they do not need to be set manually per package.
-
-IMPORTANT: The GitHub REST API does NOT expose the Manage Actions access feature for NuGet packages. NuGet packages are repository-scoped and can only have their visibility changed (public/private) via the API. Granting specific repo access via Manage Actions access is UI-only. For each package needing cross-repo access, go to: https://github.com/users/50chickens/packages/nuget/package/PACKAGE_NAME -> Package settings -> Manage Actions access -> Add repository -> Role: Read.
-
-To verify current access for a package: gh api /user/packages/nuget/PACKAGE_NAME
-To check all packages: gh api "/users/50chickens/packages?package_type=nuget"
-The gh CLI requires the read:packages and write:packages scopes to manage package permissions.
