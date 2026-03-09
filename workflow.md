@@ -15,6 +15,10 @@ the iteration process is:
     - gather requirements
     - make changes.
     - run all gh.ps1 scripts in order to verify code builds and tests ok before doing any commits. 
+    - note the following paths:
+        ~/git/internal/Alsionyx/Alsionyx/ci/gh.ps1
+        ~/git/internal/Ipscm/ci/gh.ps1
+        ~/git/internal/Setup/Alsionyx/ci/gh.ps1
     - git commit the changes.
     - verify github actions succcess.
 Code formatting errors (WHITESPACE) must be fixed. Run dotnet format on the solution, commit the formatting changes, and push again.

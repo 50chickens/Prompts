@@ -44,6 +44,12 @@ Return Task<T> from services.
 Never use blocking calls like Wait() or Result.
 Only use nullable if this is most optimal.
 
+### Native interop (P/Invoke)
+Always use `[DllImport]` with explicit `CallingConvention = CallingConvention.Cdecl`. Never use `[LibraryImport]` or `[return: MarshalAs(UnmanagedType.Bool)]`.
+C99 `bool` (`_Bool`) is 1 byte. `UnmanagedType.Bool` is a 4-byte Win32 `BOOL` — wrong on Linux. Declare C99 bool returns as `int` and compare `!= 0` at the call site.
+Static inline functions not exported by the shared library must be reimplemented in C# by reading the native struct layout directly via `Marshal.ReadIntPtr` and invoking the function pointer through a typed delegate.
+
+
 # Generic powershell coding techniques.
 Only use approved verbs for function names.
 Prefer powershell modules over invoking any command line tools. If there are powershell modules that can be more natural to execute them in powershell and they do not exist they can be installed. 
