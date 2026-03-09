@@ -1,5 +1,8 @@
 # LV2 Plugin SIGSEGV Troubleshooting (C# Host via lilv)
 
+Important: keep updating this document as you try things and if they work or not.
+Keep adding logging to the ratatouille plugin until you discover the reason.
+
 ## Context
 
 This documents a SIGSEGV (exit 139) experienced when loading an LV2 plugin from a
