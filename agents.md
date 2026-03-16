@@ -21,9 +21,13 @@ When creating a new console app, or webapi use DefaultApplicationBuilder or WebA
 Use extension methods for service registration. eg .AddConsoleApp
 
 ## c# Coding patterns.
-
+use the default application builder pattern in c#. program.cs should be as small as possible.
+for all of the library code - seperate classes into DTOs and services. 
+dependency injection wiring could go into a seperate static class other than program.cs. 
+use commandlineparser for handling different launch scenarios in the console app. do not have a default behaviour. show the user the options if there are no command line parameters. 
 Core interfaces and abstractions are in the Core layer and have zero external dependencies beyond what the Core layer provides. Implementations go in Infrastructure (for lower-level plumbing) or Application (for business logic) layers.
-Use SOLID principles and extension methods where practical. DefaultApplicationBuilder pattern for DI setup.
+Use SOLID principles and extension methods where practical. DefaultApplicationBuilder pattern for DI setup. there is a good example of the pattern under C:\git\external\WebNon-WebHostingExamples - specifically default application builder. C:\git\external\WebNon-WebHostingExamples\Metalhead.Examples.Hosting.CAB.ConsoleApp. do not use environment variables to inject runtime variables to determine application behaviour. 
+
 Services use constructor injection for all dependencies. No service locators.
 Logging uses ILog<T> injected via constructor. Never use LogManager or static logger instances.
 Classes should have a single concern and only a primary code path. If a class has more than concern or more than one primary code path consider it for refacting into two classes. 
@@ -51,6 +55,7 @@ Static inline functions not exported by the shared library must be reimplemented
 
 
 # Generic powershell coding techniques.
+read the logging pattern from C:\git\internal\Prompts\component_prompts\solutions\ipscm\skils.md
 Only use approved verbs for function names.
 Prefer powershell modules over invoking any command line tools. If there are powershell modules that can be more natural to execute them in powershell and they do not exist they can be installed. 
 Assume that you are running on powershell 7 or above always unless i tell you. Don't add any forward or backwards compatbility code for powershell 5.
@@ -79,7 +84,7 @@ Refactor repeated sequences into functions: If the main execution contains repea
 Powershell functions should have one and only 1 purpose. 
 
 
-## Testing guidelines.
+## Testing & iteration guidelines.
 Use NUnit and NSubstitute for testing frameworks. Create unit tests to verify the DI container can resolve all services.
 Create unit test to verify DI container can resolve all services.
 Use Nunit for tests. Testcases should handle multiple scenarios for single method. 
