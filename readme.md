@@ -1,1 +1,1 @@
-text files 
+read agents.md

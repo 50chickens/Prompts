@@ -1,0 +1,40 @@
+## c# Coding patterns.
+use the default application builder pattern in c#. program.cs should be as small as possible.
+for all of the library code - seperate classes into DTOs and services. 
+dependency injection wiring could go into a seperate static class other than program.cs. 
+use commandlineparser for handling different launch scenarios in the console app. do not have a default behaviour. show the user the options if there are no command line parameters. 
+Core interfaces and abstractions are in the Core layer and have zero external dependencies beyond what the Core layer provides. Implementations go in Infrastructure (for lower-level plumbing) or Application (for business logic) layers.
+Use SOLID principles and extension methods where practical. DefaultApplicationBuilder pattern for DI setup. there is a good example of the pattern under C:\git\external\WebNon-WebHostingExamples - specifically default application builder. C:\git\external\WebNon-WebHostingExamples\Metalhead.Examples.Hosting.CAB.ConsoleApp. do not use environment variables to inject runtime variables to determine application behaviour. 
+
+Services use constructor injection for all dependencies. No service locators.
+Logging uses ILog<T> injected via constructor. Never use LogManager or static logger instances.
+Classes should have a single concern and only a primary code path. If a class has more than concern or more than one primary code path consider it for refacting into two classes. 
+Each public class has one primary code path. If a class has multiple concerns, split it into separate classes before adding more logic.
+Do not create dynamic types or records for any reason at any time. prefer c# native types - eg int over any native types - eg uint.
+Use file-scoped namespaces.
+Use interfaces in Core layer. Implementations in Infrastructure or Application layers. Core has zero external dependencies.
+Use DefaultApplicationBuilder pattern for DI setup. Register services in logical order: logging first, then infrastructure, then application services.
+Keep classes single concern. Use the service pattern. Use constructor injection for dependencies. 
+Don't create private classes. Make types public or internal.
+Keep the Main method in a project as minimal as possible. Classes should have only 1 primary code path - if there are more than split the class. 
+Use the Autofac nuget package and create an static AutofacContainer.Create() method in the AutofacContainer class and use this to setup the container. 
+Use extension methods where practical. 
+All services accept required parameters in constructor. No static service locators.
+Use type-safe logging with ILog<T>. Never use LogManager or static logger instances. Inject logger via constructor.
+Use async Task for I/O operations. 
+Return Task<T> from services. 
+Never use blocking calls like Wait() or Result.
+Only use nullable if this is most optimal.
+
+### Native interop (P/Invoke)
+Always use `[DllImport]` with explicit `CallingConvention = CallingConvention.Cdecl`. Never use `[LibraryImport]` or `[return: MarshalAs(UnmanagedType.Bool)]`.
+C99 `bool` (`_Bool`) is 1 byte. `UnmanagedType.Bool` is a 4-byte Win32 `BOOL` — wrong on Linux. Declare C99 bool returns as `int` and compare `!= 0` at the call site.
+Static inline functions not exported by the shared library must be reimplemented in C# by reading the native struct layout directly via `Marshal.ReadIntPtr` and invoking the function pointer through a typed delegate.
+
+## dotnet guidelines.
+Only use Debug for dotnet build configurations. 
+Pass the buildConfiguration parameter to build.xml to include it in the msbuild task that creates the nuget package. this build configuration value should be added as a nuget package tag.
+
+## Software architecture.
+When creating a new console app, or webapi use DefaultApplicationBuilder or WebApplicationHostBuilder patterns. 
+Use extension methods for service registration. eg .AddConsoleApp
