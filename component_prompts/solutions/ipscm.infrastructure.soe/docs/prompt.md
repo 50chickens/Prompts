@@ -1,5 +1,16 @@
 create a problem description in problem.md where - 
 
+references:
+
+working directory - ~/git/internal/ipscm.infrastructure.soe/src/. this is referenced as WORKING_DIRECTORY in this prompt.
+orchestration script folder: same as working directory.
+orchestration script name: WORKING_DIRECTORY/ci/run.ps1
+documents folder: docs folder under working directory.
+
+patterns to reference:
+
+orchestration script: read ~git/internal/Prompts/agents.md. it has a reference to a markdown file on how to create an orchestration script. 
+
 the problem is - 
 we have a linux server that the /var partition on the server cannot be resized. 
 LVM logical volume requires free space in the volume group to extend.
@@ -58,17 +69,17 @@ do not do any git or github actions.
 no user impact. there are no users. 
 assume no permissions or connectivity issues.
 do not do any instance configuration except for those related to disk resizing activity & packages that are required to complete the task.
-the environment to create is linux using qemu. dont use aws or azure, or other virtualization technologies.
-the run.ps1 should be idempotent with all of it's operations.
-Each phase is not complete until ipscm.soe.aws/run.ps1 runs successfully. 
+The environment to execute all of the scripts and where the virtual machine will be created is a local linux server. Do not use aws or azure, or other virtualization technologies.
+The run.ps1 should be idempotent with all of it's operations.
+Each phase is not complete until the orchestration script runs successfully. 
 Create a plan.md containing each step in the high level process and the core powershell command that would be used to execute it. 
 
 
 patterns/folders:
 
-use /home/pistomp/git/internal/Prompts/component_prompts/solutions/ipscm.soe.aws for all of the pipeline scripts to solve the problem long term. 
+use WORKING_DIRECTORY for all of the pipeline scripts to solve the problem long term. 
 the guidelines for powershell/the pipeline are under the patterns folder - specifically the powershell.md which contains details of an orchestration script for solving phase 1. 
-the scripts for this problem definately need to go into /home/pistomp/git/internal/Prompts/component_prompts/solutions/ipscm.soe.aws. 
+the scripts for this problem definately need to go into WORKING_DIRECTORY. do not references files outside this folder. if you need any additional code - copy it into the WORKING_DIRECTORY.
 
 
 Here is the different phases of solving the problem. 
@@ -77,9 +88,9 @@ phase initial_setup:
 
 Create a pipeline to create a basic framework for testing the disk resize scripts. use the CI pattern - eg a configs folder for the various components. ignore any references to nuget or github. we are not using those. 
 Dont do any changes towards solving the disk resize problem.  
-follow the /home/pistomp/git/internal/Prompts/agents.md on how to create a powershell script.
+follow the  on how to create a powershell script.
 
-run /home/pistomp/git/internal/Prompts/component_prompts/solutions/ipscm.soe.aws/run.ps1 and verify this executes successfully. do not do any git or github actions.
+run run.ps1 and verify this executes successfully. do not do any git or github actions.
 
 phase distribution_creation:
 tools: 
