@@ -8,6 +8,10 @@ CI_FOLDER: BASE_FOLDER/ci. contains configs folder containing .json files that c
 WORKING_DIRECTORY: BASE_FOLDER/src/fs-resize. this is the working folder that we will use to execute a script to solve the problem (eg run rpi-imager, qemu etc).
 MAIN_SCRIPT: CI_FOLDER/ci.ps1. calls ORCHESTRATION_SCRIPT_NAME with the -configurationFolder parameter. this will be relative to the ORCHESTRATION_SCRIPT_NAME - eg ..\ci\configs
 ORCHESTRATION_SCRIPT_NAME: WORKING_DIRECTORY/run.ps1. the script which is used to do the actual work. eg download/customize an image, start a virtual machine etc. 
+ASSETS_FOLDER: WORKING_DIRECTORY/assets. eg firstrun.sh used to configure the raspberry pi vm. 
+TEMPORARY_ASSETS: WORKING_DIRECTORY/temporary_assets. files that are required by the script but would be generated at run time. eg ssh keys for pre-seeding the host. create if not exist, and remove at the end of the script.
+CACHED_ASSETS: WORKING_DIRECTORY/cached_assets these are files that used in the pipeline but are the same for each time the run.ps1 is executed. eg the rapsberry-pi OS image. assets in this folder are not cleaned up post script execution so that the can be used next time. if they do not exist, then they should be create/downloaded etc and if they cannot the script should fail. the filenames of these assets should match the original source/purpose - eg 2025-12-04-raspios-trixie-arm64-lite.img.xz which is the file name of the url to get the raspberry pi image should be the name of the file. 
+also - generate a  hash of the file (use any available) so we are able to check if the file is valid. use the original file hash from the source if it's available, otherwise generate it when the file is created and verify it ahead of using the file. fail the script if the hash does not match the file contents. the md5 filename should match the original filename but with the correct extension on it - eg .md5, .sha256 etc.
 
 other folders. 
 
@@ -96,7 +100,7 @@ Create a problem.md that only contains the following -
 Create a phase specific plan.md first before writing any code for that phase. it should contain only each step in the high level process and the core powershell command that would be used to execute it.  call the file plan-phase.md - eg plan-initial_setup.md.
 Do not create a plan file for the documentation phase. If there are either problem.md or plan files ignore them and rewrite them based on the content of this file. This prompt.md is the authoritive source of what is required. 
 
-phase initial_setup: 
+### phase initial_setup.
 
 Create a pipeline to create a basic framework for testing the disk resize scripts. use the CI pattern - eg a configs folder for the various components. ignore any references to nuget or github. we are not using those. 
 Don't do any changes towards solving the disk resize problem.  
@@ -105,14 +109,16 @@ Don't do any changes towards solving the disk resize problem.
 ### phase distribution_creation.
 tools: 
 1. Raspberry Pi Imager. rpi-allows you to download an existing raspberry pi based linux distribution and also pre-seed it with ssh keys so that can ssh into the machine. you can install it with : sudo apt install rpi-imager. use the raspberry pi OS lite (64 bit) image - rpi-imager should allow you to customize it. note you'll need to create a local disk and use rpi-imager to write the OS to this disk. i am not sure if rpi-imager will let you write to an image where it is not a usb device attached to the system. you will need to look into this. i have cloned the rpi-imager source into ~/git/external/rpi-imager so you can verify if it is the case or not.  ignore any previous guidance on how to create a disk image for testing.
-
-2. qemu - once the distribution is created/customized use qemu to boot it. use the ssh proxy so that we do not need to discover it's ip address. 
-3. ssh. once the virtual machine is started we should be able to connect to it via ssh.
+search for the image to write by name -"Raspberry Pi OS Lite(64-bit)". this is the name of the image that rpi-imager uses to get the url of the image.
 
 the installation should pre-seed the root users ssh keys with a public/private key pair that we can then use to ssh into the server and execute the disk resizing commands. 
 
 options for executing scripts from inside the linux virtual machine: pre-seed the linux distribution with ssh keys that you can use to connect via ssh. this is preferable since we will use that other pattern in other places. 
 
+write firstrun.sh and any files related to bootstrapping the raspberry pi original host into the ASSETS_FOLDER.
 ### phase environment_setup:
 
-1. install qemu under linux to create a virtual machine - use the smallest linux distribution for the problematic host  - but the installation needs to be completed unattended. the disk volume group, disk and partition sizes can be proportionally so that the original problem can be solved but the total amount of disk copies is minimized. the disk on the host should be the problematic configuration. 
+tools:
+
+2. qemu - once the distribution is created/customized use qemu to boot it. use the ssh proxy so that we do not need to discover it's ip address. 
+3. ssh. once the virtual machine is started we should be able to connect to it via ssh.
