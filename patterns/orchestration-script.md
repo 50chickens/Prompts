@@ -10,6 +10,17 @@ Examples of these patterns can be found the examples folder.
 tooling. Example scripts can be found under the examples\tooling folder.
 build. Example scripts can be found under the examples\build folder.
 
+## logging
+
+Add timestamps to the log so we can see how long things have taken. 
+
+replace Write-Host function with Write-Log. 
+
+## include files. 
+
+we have a basic working script that we can extend now. there is the includes folder under the working directory. we dot source all of the files in there. 
+they are categorized into sections where there is no overlap. eg if we swapped out repeating these script from raspberry pi arm64 to redhat x64 for example the changes would be isolated to removing the rasperry pi section and replacing it appropriately. you do not need to match function names here - eg if we switch from raspberry pi arm64 to redhat x64 don't give functions in the redhat.ps1 an incorrect name just to make them work. they should really represent the redhat equivalents. 
+
 ## configuration files. 
 
 in the configs folder there is a list of .json files and each of the .json files matches a folder under the src folder. 
@@ -72,6 +83,7 @@ general function pattern -
 1. only pass $configuration. this mandatory.
 2. have a write-host at the start of the function to indicate what the function will do/is for.
 3. collect variables used by the function at the start of the function. don't use $configuration.somepropery except at the start of the function to collect the variables used by the function.
+4. in linux don't use the /tmp folder for any reason. temporary files should go into the temporary_assets folder. 
 good:
 
 function Invoke-GenerateSshKeypair($configuration) {

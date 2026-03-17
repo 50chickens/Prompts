@@ -61,12 +61,16 @@ we need to place the /var file system mount at the end of the disk so that if we
 
 ## High level process.
 
+Phase host_configuration
+
 Create 1 server with the original configuratation. 
 Wait for the server to start. 
 Stop the server. 
 Detach the disk from the original host.
 Create a new helper server. it can have any disk configuration attach 2 disks - one is from the original host. the other is a fresh larger disk.
-Connect to the new server via ssh. 
+Connect to the new server via ssh. use .net core tcpclient to create a non blocking test with a while loop -> while NotConnected().
+
+Phase host_disk_configuration
 Create volume group/partition layout on larger empty disk. 
 Copy content of the original disk with the layout that needs to be fixed to the new fresh disk.
 Apply boot config which would allow the original server to boot. the configuration needs to match the original host where the larger disk will be reattached, not the helper host. 
@@ -74,13 +78,20 @@ Shutdown helper instance.
 Detach larger disk from helper server. 
 Reattach to original server.
 Restart original server. 
-Verify disk layout. 
+stop original server. 
+
+Phase host_disk_verification.
+create new virtual machine which uses resized disk.
+starts virtual machine. 
+connects to host via ssh and verifies disk layout. 
+stops new host.
+
 
 ## solution constrains.
 The helper server is replacable and contains no important information.
 Do not do any instance configuration except for those related to disk resizing activity & packages that are required to complete the task.
 The environment to execute all of the scripts and where the virtual machine will be created is a local linux server. Do not use aws or azure, or other virtualization technologies.
-
+we don't need to read from the ssh connection we only need to see if the connection is accepted. this tells us that we are able to then attempt to ssh using the public/private keys that we generated. 
 
 ## General Constraints.
 No backups required.
@@ -122,3 +133,12 @@ tools:
 
 2. qemu - once the distribution is created/customized use qemu to boot it. use the ssh proxy so that we do not need to discover it's ip address. 
 3. ssh. once the virtual machine is started we should be able to connect to it via ssh.
+
+### phase host_configuration:
+see phase host_configuration in high level steps. write a plan first. 
+ 
+### phase host_disk_configuration:
+see phase host_disk_configuration in high level steps. write a plan first. 
+
+### phase host_disk_verification
+see Phase host_disk_verification in high level steps. write a plan first. 
