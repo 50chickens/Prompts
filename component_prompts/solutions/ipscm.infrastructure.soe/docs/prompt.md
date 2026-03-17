@@ -2,16 +2,19 @@ create a problem description in problem.md where -
 
 references:
 
-working directory - ~/git/internal/ipscm.infrastructure.soe/src/. this is referenced as WORKING_DIRECTORY in this prompt.
-orchestration script folder: same as working directory.
-orchestration script name: WORKING_DIRECTORY/ci/run.ps1
-documents folder: docs folder under working directory.
+BASE_FOLDER: ~/git/internal/ipscm.infrastructure.soe. Root of file system containing all of the files/scripts/config/documentation related to this problem/solution. 
+DOCUMENTATION_FOLDER: BASE_FOLDER/docs. Except for prompt.md this is where all of the docs go.
+CI_FOLDER: BASE_FOLDER/ci. contains configs folder containing .json files that contain the configuration for the scripts. this folder should already be pre-seeded with ci.ps1 and the configs folder.
+WORKING_DIRECTORY: BASE_FOLDER/src/fs-resize. this is the working folder that we will use to execute a script to solve the problem (eg run rpi-imager, qemu etc).
+MAIN_SCRIPT: CI_FOLDER/ci.ps1. calls ORCHESTRATION_SCRIPT_NAME with the -configurationFolder parameter. this will be relative to the ORCHESTRATION_SCRIPT_NAME - eg ..\ci\configs
+ORCHESTRATION_SCRIPT_NAME: WORKING_DIRECTORY/run.ps1. the script which is used to do the actual work. eg download/customize an image, start a virtual machine etc. 
+
+other folders. 
 
 patterns/folders:
 
-use WORKING_DIRECTORY for all of the pipeline scripts to solve the problem long term. 
-the run.ps1 used by this solution is the tooling ps1 pattern. 
-the scripts for this problem definately need to go into WORKING_DIRECTORY. do not references files outside this folder. if you need any additional code - copy it into the WORKING_DIRECTORY.
+The run.ps1 used by this solution is the tooling ps1 pattern. 
+ci.ps1 and configs/ (JSON config files) go in CI_FOLDER. run.ps1 and all work scripts go in WORKING_DIRECTORY. Do not reference files outside of BASE_FOLDER; if you need any additional code, copy it into WORKING_DIRECTORY.
 
 Patterns/guidelines to reference:
 read ~git/internal/Prompts/agents.md for patterns relating to orchestration scripts, powershell coding guidelines and others.
@@ -82,13 +85,16 @@ Assume no permissions or connectivity issues.
 No user impact. there are no users. 
 The run.ps1 should be idempotent with all of it's operations.
 Each phase is not complete until the orchestration script runs successfully. 
-Create a problem.md that only contains the following - 
-    Problem description.
-    Solution. 
-Create a phase specific plan.md first before writing any code for that phase. it should contain only each step in the high level process and the core powershell command that would be used to execute it.  call the file plan-phase.md - eg plan-initial_setup.md
 
 ## Phases.
 Here is the different phases of solving the problem. 
+
+phase documentation:
+Create a problem.md that only contains the following - 
+    Problem description.
+    Solution. 
+Create a phase specific plan.md first before writing any code for that phase. it should contain only each step in the high level process and the core powershell command that would be used to execute it.  call the file plan-phase.md - eg plan-initial_setup.md.
+Do not create a plan file for the documentation phase. If there are either problem.md or plan files ignore them and rewrite them based on the content of this file. This prompt.md is the authoritive source of what is required. 
 
 phase initial_setup: 
 
@@ -98,13 +104,12 @@ Don't do any changes towards solving the disk resize problem.
 
 ### phase distribution_creation.
 tools: 
-1. Raspberry Pi Imager. rpi-allows you to download an existing raspberry pi based linux distribution and also pre-seed it with ssh keys so that can ssh into the machine. you can install it with : sudo apt install rpi-imager. use the raspberry pi OS lite (64 bit) image - rpi-imager should allow you to customize it. note you'll need to create a local disk and use rpi-imager to write the OS to this disk. i am not sure if rpi-imager will let you write to an image where it is not a usb device attached to the system. you will need to look into this. i have cloned the rpi-imager source into /home/pistomp/git/external/rpi-imager so you can check. 
+1. Raspberry Pi Imager. rpi-allows you to download an existing raspberry pi based linux distribution and also pre-seed it with ssh keys so that can ssh into the machine. you can install it with : sudo apt install rpi-imager. use the raspberry pi OS lite (64 bit) image - rpi-imager should allow you to customize it. note you'll need to create a local disk and use rpi-imager to write the OS to this disk. i am not sure if rpi-imager will let you write to an image where it is not a usb device attached to the system. you will need to look into this. i have cloned the rpi-imager source into ~/git/external/rpi-imager so you can verify if it is the case or not.  ignore any previous guidance on how to create a disk image for testing.
 
-2. qemu - once the distribution is created/customized use qemu to boot it. use the ssh proxy so that we do not need to discover it's ip address.
+2. qemu - once the distribution is created/customized use qemu to boot it. use the ssh proxy so that we do not need to discover it's ip address. 
 3. ssh. once the virtual machine is started we should be able to connect to it via ssh.
 
 the installation should pre-seed the root users ssh keys with a public/private key pair that we can then use to ssh into the server and execute the disk resizing commands. 
-use /ipscm.soe.aws/fs-resize as the base folder for the entire process. 
 
 options for executing scripts from inside the linux virtual machine: pre-seed the linux distribution with ssh keys that you can use to connect via ssh. this is preferable since we will use that other pattern in other places. 
 

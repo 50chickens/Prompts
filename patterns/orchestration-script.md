@@ -63,4 +63,4 @@ only run integration tests if not running under github action. the RunIntegratio
 
 ## tooling - run.ps1 .
 
-all of the requirements that apply to the build version of run.ps1 apply to the tooling version of the run.ps1 except that we do not need to create a gh.ps1. gh.ps1 is for simulating running under github locally. 
+all of the requirements that apply to the build version of run.ps1 apply to the tooling version of the run.ps1 except that we should create a tooling.ps1 that calls the 
