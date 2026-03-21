@@ -151,6 +151,53 @@ MultiSpectrumReport: List<NamedSpectrum> Scenarios, NamedSpectrum? Reference, st
 MultiScenarioHtmlExporter: void Export(MultiSpectrumReport report, string outputPath). Generates self-contained HTML with: one spectrum overlay chart (all scenarios + reference, each a distinct colour), one diff chart per scenario vs reference (if reference provided). Uses same SVG approach as SpectrumHtmlExporter.
 SpectrumReportBuilder is extended: SpectrumAnalysisResult -> NamedSpectrum Build(SpectrumAnalysisResult result, string name).
 
+---
+
+## Revision: dataset workflow + HTML removal
+
+### Goal
+
+Restructure the scenario verb to organise captured recordings into named datasets. Each run of a scenario creates a timestamped output WAV and metadata JSON under a dataset folder. All HTML generation code is removed. Visualization data models remain.
+
+### Remove HTML generation
+
+Files deleted:
+- Alsionyx.Library.Audio.Visualization/SpectrumHtmlExporter.cs
+- Alsionyx.Library.Audio.Visualization/MultiScenarioHtmlExporter.cs
+- AudioLevels.Tests/MultiScenarioHtmlExporterTests.cs
+
+Options removed:
+- --report from CompareOptions
+- --report from ScenariosCompareOptions
+
+Handler changes:
+- CompareCommandHandler: remove SpectrumHtmlExporter dependency + HTML export block
+- ScenariosCompareCommandHandler: remove MultiScenarioHtmlExporter dependency + Export call
+
+ServiceRegistration: remove SpectrumHtmlExporter and MultiScenarioHtmlExporter registrations.
+
+Visualization data models remain (MultiSpectrumReport, NamedSpectrum, SpectrumReport, SpectrumReportBuilder, etc.).
+
+### Dataset/scenario workflow
+
+ScenarioOptions changes:
+- --scenario-file renamed to --run-test-scenario (required, full path to scenario definition JSON)
+- --data-set added (default "DataSet1")
+
+When --data-set is provided:
+- Output WAV written to: {AppContext.BaseDirectory}/datasets/{dataSet}/{scenarioName}_{yyyyMMddTHHmmss}Z.wav
+- Metadata JSON written to: same stem, .json extension
+- Dataset folder created if it does not exist
+
+When --data-set is not provided:
+- Falls back to definition.OutputWav from the scenario JSON
+- Metadata sidecar written next to the WAV as before
+
+ScenarioDefinition: OutputWav made optional (empty default, only required when no --data-set).
+ScenarioMetadata: Dataset property added (empty when no dataset).
+
+Dataset folder is located at: {AppContext.BaseDirectory}/datasets/{dataSetName}/
+
 ### Unit Tests
 
 WavFileSpectrumAnalyserTests: uses WaveFileDataFactory to write a temp WAV, asserts AnalyseAsync returns non-empty AveragedPsd of expected length. FrameCount > 0. DurationSeconds > 0.

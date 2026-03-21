@@ -224,3 +224,15 @@ Summary of visual indicators that confirm the bad backup is loaded
 5. In one complete layout, twelve consecutive switches show CC 1 through CC 12 in sequence
 6. Setup > Audio level parameter corresponding to block 0 p[1] reads approximately 57% instead of 67%
 7. If FC is connected when the bad backup is loaded, the FM3 output volume may immediately drop when the FC re-sends its switch states on connection
+
+
+
+
+phase syx_backup_analysis:
+
+C:\dev\music\fm3\backups\backups_with_broken_sound\copilot_testing\ there are two new folders:
+
+current_backup_for_analysis_before_reboot: this backup was taken before rebooting the fm3.  the uptime was several days.
+current_backup_for_analysis_post_reboot: this backup was taken around 2-5 minutes after rebooting the fm3. 
+
+in each folder there is a notes.txt which  i have detailed some of the settings that exist in the system settings/ui. 

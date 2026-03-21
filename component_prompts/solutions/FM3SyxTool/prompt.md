@@ -49,19 +49,75 @@ under C:\git\internal\fm3_analysis\src\FM3BlockLevels we have written audio code
 some/most of this code already exists in the C:\git\internal\fm3_analysis\src\FM3BlockLevels repo. we need to extend it to generate visualization data now. this should fit into the existing CI pattern for FM3BlockLevels.
 update the console app we need to support the following workflow. 
 
-i want to use a reference file to generate output .wav files for different settings/scenarios. eg add a command line parameter that uses the command line option:
+i want to use a reference file to generate output .wav files for different settings/scenarios and group them into a single dataset. eg add a command line parameter that uses the command line option:
 
--RunTestScenario "scenario1" - this is json file that defines each of the test scenario. it has an input .wav file and a named output .wav file.  this will allow me to generate a named .wav file & metadata about the test. 
-and
--scenariosToCompare ["scenario1","scenario2","scenario3"] -referenceAudio .wav . this will compare all of the .wav files generated during each scenario and use the visualization library to create each of the EQ /frequency spectrum charts. note the reference .wav will be unprocessed audio so its EQ/frequency spectrum is expected to be significantly different than the ones generated during the scenario.
+-dataSet "dataset1" dataset is a folder underneath the running binaries folder. create it not exist. the folder name is the name of the dataset. each dataset folder should contain seperate timestamped testscenario json files for each of the test scenarios. individual runs of the test scenario should create a new timestamped .json file under the dataset folder. The default dataset name is DataSet1 if it's not supplied. 
+-RunTestScenario "scenario1" - this is defines each of the test scenarios. it has an input .wav file and a named output .wav file a description, timestamp and other useful metadata.  this will allow me to generate a named .wav file & metadata about the test. 
+
+Remove any code that relates to generating a .html file in this phase. do not mark it decomissioned or add comments about it. remove it entirely. we will re-add it later on. 
+
+phase audio_compare_test_requirements
+i have reset the speaker impulse curve under FM3-260321-080610-system+gb+fc.syx
+
+i now want to use the FM3BlockLevels console app to measure the impulse response of the FM3. i have reset all of the audio settings and also removed all of the effects blocks in the signal chain. in the signal chain there is a connection from the input 1 block to the output 1 and output 2 blocks. 
+i have also set the input 1 source to be usb 3/4. 
+
+if you send a known signal to the FM3 audio card output on the host device on channel 3/4 you can then record the fm3 audio card input on the host device on channel 3/4 (which corrosponds to the output block 2 in the fm3 signal chain). this will be able to give an impulse response of the signal chain which i expect to be 0 but we should measure it. 
+
+can you use FM3BlockLevels to do this. create a testing scenario for this and then run the test. 
+rerun the test - im expecting that the THD values are also included. the usb buffer size on the fm3 was set to 192 for the last test. i have changed it to 96. 
+was the source audio file set to C:\git\internal\fm3_analysis\audio\Metal Guitar DI.wav. this is the reference .wav file 
+
+the usb playback levels are confirmed as 0.00 db. the input gain on the physical input 1 is confirmed as 1.00 (which i assume is 0 db gain, or some standard value)
+
+it might also be possible to include getting the individual block levels (possibly even the audio) while running the test using Fm3SerialClient. there are only 4 blocks in the signal chain - input 1 -> pitch (disabled) -> output 1 and output 2 (there is a splitter so that the output from the pitch block goes to both ouput 1 and output 2 blocks).  so you can see if this is possible. add it to the test suite if you can.
+phase test_setup.
+
+i dont know if it's possible - but for the loop back test there are a few criteria:
+
+1. input 1 must be connected to output 2 block. 
+the preset called "straight thr" (preset number 496 has this). other presents can have some unknown/unusable signal chain. add a check that input 1 is connected to output 2 in the signal chain. fail the test if that is not the case. do not check for a preset name or number. is there any way to validate the active preset. 
+2. in the system settings the source for input 1 must be set to usb channels 3/4. 
+3. in the system settings the usb 3/4 record source must be set to output 2. 
+
+i dont know if it's possible to verify those prior to the test. 
+
+also - if Com7 is not able to be opened do not start the test. if we are able to show the block levels via the usb serial connection i want that included in the test so if you cannot open the usb serial connection do not start the test. for reference i have closed fm3-edit which would have been using it. 
+
+lastly - have reset the physical output 2 dial on the device to around 66%. i do not know if this will affect the dbfs levels on output 2 (i have seen actual changes on the levels of audio being sent out the physical output 2 connection but i do not know if the digital output block 2 levels would be affected). other than that i have not changed any other setting since the last test. the physical settings for the output 1 and outpu 2 dials are available in the 
+
+Recommended changes to the test runner
+Replace the WAV THD step with:
+
+Correlation + error RMS (reference vs captured, latency-aligned)
+Log sweep at -18 dBFS → frequency response magnitude + phase
+
+phase previous_implementation_review.
+
+go and look in C:\git\internal\fm3_analysis\fm3_analysis\to_be_checked. there are two c# solutions that was created as a previous attempt we had at showing the block levels using usb serial and troubleshooting the audio problem. we created documentation and some csharp projects and reference code. is there anything from those original attempts that is useful here. once you have checked each file any new insights move it under C:\git\internal\fm3_analysis\fm3_analysis\has_been_checked. keep the same over file system layout. once completed im expecting to see teh same files in the same folders except that they now live under C:\git\internal\fm3_analysis\fm3_analysis\has_been_checked instead of C:\git\internal\fm3_analysis\fm3_analysis\to_be_checked.
+dont write a plan but check the documentation folder. there might be documentation that is either wrong or these c# files contains new insight. go and update them if need be. be careful with adding new content. i dont want two versions of content that conflicts with each other.
+
+phase fm3_wiki_download
+
+there is the url: https://wiki.fractalaudio.com/wiki/index.php?title=Fractal_Audio_Wiki_Home
+
+i have downloaded some of the content on this wiki but not all. there might be useful content within that site. can you write a script to download the entire of the wiki (or do it manually) into C:\git\internal\fm3_analysis\documentation\wiki
+
+also - include all known block types for the fm3 under public static readonly IReadOnlyDictionary<int, string> KnownBlockNames = new Dictionary<int, string> if it's not already done. 
+
+the focus should be rerunning the baseline audio tests. don't get distracted. if you have enough info to do this do the audio tests first. 
+
+
+phase: audio_dataset_visualization
+
+
+-dataSet "dataset1" -scenariosToCompare ["scenario1","scenario2","scenario3"] -referenceAudio .wav . this will compare all of the .wav files generated during each scenario and use the visualization library to create each of the EQ /frequency spectrum datasets. note the reference .wav will be unprocessed audio so its EQ/frequency spectrum is expected to be significantly different than the ones generated during the scenario.
 -excludeRererenceFile. defaults to false. this shows the EQ/spectrum of the original reference file. 
 -showDiff. calculate the volume difference between the two of the selected spectrums. eg i can show the diff between 
     - the reference file and scenario 1
     - the reference file and scenario 2
     - the scenario 1 and scenario 2 output files.
     - the scenario 1 and scenario 3 output files.
-
-i shoud be able to enable/disable visibility in the .html report each of the combinations of frequency spectrum reports and the selected options. eg if i uncheck either a frequency spectrum display or a comparison it should be disabled in the chart. i can then re-enable any of all of the datasets. 
 
  
 phase: write_fm3_loopback_audio_testing.
