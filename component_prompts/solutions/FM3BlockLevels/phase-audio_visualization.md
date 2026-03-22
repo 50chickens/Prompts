@@ -4,7 +4,7 @@
 Data library for rolling metrics history, frequency spectrum diff, gain normalization, and spectrum overlay. No GUI, no hardware dependencies. GUI rendering is covered in phase-application_gui.md.
 
 ## Existing Code Analysis
-
+Spectrogram - C:\git\external\audio_visualization\Spectrogram. 
 SpectrumNet (c:\git\external\audio_visualization\SpectrumNet) — .NET 8 WPF:
 SpectrumMath: gain normalization with GainParameters (MinDb, MaxDb, AmplificationFactor) and scale conversion (Linear, Logarithmic, Mel, Bark, ERB). Reuse: normalization math pattern.
 ISpectrumRenderer: pluggable renderer interface with SkiaSharp. Reuse: abstraction design for application_gui phase.

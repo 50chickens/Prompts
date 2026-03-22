@@ -105,16 +105,27 @@ detect what frequency and bitrate the .wav file is using and then set the input 
 use the recordings subfolder of the console apps running directory for holding the .wav files. 
 use the logs subfolder of the console apps running directory for holding log files. 
 
-phase audio_visualization
+phase audio_metadata_generation
 
+used to generate live & historical data for scrolling histograms of the audio metrics - THD, latency, input levels, differences in dbfs levels from the original reference .wav file. it can show the various metrics for the previous 30, 60 seconds etc seconds (but this is configurable). 
+
+add a compare .wav file to the simple console app.  the goal is that i want to do these comparisons get the frequency differences between the set of .wav files in each comparison. 
+
+The goal here is that i know to know if the .wav files produced in scenario 2 and 3 are different from each other.  i have changed a setting in between scenario 2 and 3 and kept the input .wav file the same. 
+I have some some a/b testing and recorded some sample .wav files. the detail is in the prompt.md. first - add info the plan.md but make it generic for the future. 
+I want to know if there is a difference between scenerio 2 and 3. I hear something different in the audio and want to confirm it via analyzing the audio. the analysis should be done via the console app rather than any manual/typed commands 
+
+phase audio_visualization.
 create a audio visualization library for use in our application. 
-
-used to generate live & historical data for scrolling histograms of the audio metrics - THD, latency, input levels. it can show the various metrics for the previous 30, 60 seconds etc seconds (but this is configurable). 
 generating the difference in frequency spectrum for two sets of data. eg the 1000hz frequency level in one sample is 10db and another .wav has the same frame as 11db. the output would be 1db. the goal here is to compare two output .wave files and generate a visualization that can show the differents in frequency spectrum at any point in the .wav file length (or for an entire file). an audio frame this sets of data could be either live audio or comparing two sets of  .wav files directly.
 able to apply a normalization - eg if two audio input channels have two different gain levels - we should be able to adjust one so that we can compare levels. eg the channel 3 and channel 1 on the fm3 are ~ 18 dbfs different. 
 it should be able to overlay multiple simultaneous input audio devices and simultaneous channels on the same device. 
 
-phase audio_compare
+check C:\git\external\audio_visualization\Spectrogram. it has a visualiztion for historical data. it is ambiguous in that it shows either an absolute dbfs level or a different in dbfs level between two sources. eg the reference di metal guitar.wav and the one we applied the 4 x EQ changes to. initial goal is to use Spectrogram to generate a time based EQ difference between the refernece DI metal guitar.wav and the 4 x EQ changes .wav. this will be constant between the two files over time but will give a good baseline library for presenting differences in EQ over time. eventually we want to create a real-time EQ difference library.
+
+update plan.md for audio_visualization. C:\git\internal\Prompts\component_prompts\solutions\FM3BlockLevels\phase-audio_visualization.md. dont create any code yet. just create the plan.
+
+phase comparison_scenarios.
 
 Add a compare option to the simple console app that compares:
 Metal Guitar DI.wav - the original .wav file.
@@ -124,11 +135,6 @@ comparison 1: C:\git\internal\fm3_analysis\mp3_comparison\original\Metal Guitar 
 comparison 2: C:\git\internal\fm3_analysis\mp3_comparison\original\Metal Guitar DI.wav to C:\git\internal\fm3_analysis\mp3_comparison\scenario_2_output_copy_none\Metal Guitar DI_Output_FM3_USB_Audio_Device_ch3_20260314115359.wav
 comparison 3: C:\git\internal\fm3_analysis\mp3_comparison\scenario_1_output_copy_channel_1_to_channel_2\Metal Guitar DI_Output_FM3_USB_Audio_Device_ch3_fm3_output2_block_20260314115216.wav to C:\git\internal\fm3_analysis\mp3_comparison\scenario_2_output_copy_none\Metal Guitar DI_Output_FM3_USB_Audio_Device_ch3_20260314115359.wav
 
-add a compare .wav file to the simple console app.  the goal is that i want to do these comparisons get the frequency differences between the set of .wav files in each comparison. 
-
-The goal here is that i know to know if the .wav files produced in scenario 2 and 3 are different from each other.  i have changed a setting in between scenario 2 and 3 and kept the input .wav file the same. 
-I have some some a/b testing and recorded some sample .wav files. the detail is in the prompt.md. first - add info the plan.md but make it generic for the future. 
-I want to know if there is a difference between scenerio 2 and 3. I hear something different in the audio and want to confirm it via analyzing the audio. the analysis should be done via the console app rather than any manual/typed commands 
 
 phase aplication_gui.
 
