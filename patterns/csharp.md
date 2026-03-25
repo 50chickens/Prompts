@@ -38,3 +38,16 @@ Pass the buildConfiguration parameter to build.xml to include it in the msbuild 
 ## Software architecture.
 When creating a new console app, or webapi use DefaultApplicationBuilder or WebApplicationHostBuilder patterns. 
 Use extension methods for service registration. eg .AddConsoleApp
+
+## Patterns/practises to avoid.
+Do not create Null* fallback implementations (NullService, NullFm3RealtimeService, etc). These hide missing required dependencies and mask failures. If a dependency is required, fail fast — don't silently no-op.
+Do not write inline NullLog/NoOpLogger classes in production code or test files. Use the proper logging infrastructure (Ipscm.Library.Logging + LogManager.GetLogger<T>()). Fake loggers hide real issues and create dead code.
+Do not use environment variables to inject test configuration (ports, connection strings, etc). Put required config in private const or private fields initialised in [OneTimeSetUp]. Tests should run or fail deterministically — not silently skip based on environment state.
+Do not mark integration tests [Explicit] or gate them on environment variable checks. Integration tests should always run and fail clearly when infrastructure is missing — that is the signal.
+Do not provide default/fallback behaviour when required startup arguments are absent. Show usage and exit. Silent fallbacks hide misconfiguration.
+
+## helper knowledge
+Logging in tests: use Ipscm.Library.Testing (TestUtils.BuildTestConfiguration()) + Ipscm.Library.Logging (new LogBuilder(config).Build()) then LogManager.GetLogger<T>(). Never mock or stub ILog<T> with a hand-rolled NullLog — it hides log output that is useful for diagnosing test failures.
+Test configuration: all values a test needs (ports, paths, connection strings) go in private const or private fields assigned in [OneTimeSetUp]. This makes the test self-documenting and deterministic.
+Consolonia app service injection from tests: set a static Func<IService>? ServiceProvider property on App before the test fixture runs (in the constructor). The app calls it at startup. Do not use a fallback null-safe operator (??) on ServiceProvider — tests must set it explicitly so missing wiring is caught immediately.
+When an app has required startup arguments, enforce them at the entry point and exit with usage text. Do not silently fall back to a default mode — the fallback path is never tested and creates two code paths to maintain.
