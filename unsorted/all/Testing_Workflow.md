@@ -481,7 +481,7 @@ Success
 
 PowerShell scripts in the `ci/` directory simulate GitHub Actions locally:
 
-**`gh.ps1` - Main orchestrator:**
+**`ci.ps1` - Main orchestrator:**
 - Navigates to correct directory
 - Loads build configuration JSON
 - Sequences lint, build, and test stages
@@ -1371,26 +1371,26 @@ The most common quality issues arise when implementations are not tested until t
    - DO NOT proceed to tests if build fails
 
 3. **After Test Project Setup** (base test classes, page objects)
-   - Run full CI: `.\ci\gh.ps1`
+   - Run full CI: `.\ci\ci.ps1`
    - Verify: Lint passes, build succeeds
    - Fix: Any issues found
    - Expected time: 5-10 minutes
 
 4. **After Adding Tests** (test methods written)
-   - Run full CI: `.\ci\gh.ps1`
+   - Run full CI: `.\ci\ci.ps1`
    - Verify: All tests execute (even if some fail)
    - Fix: Test failures indicate implementation issues
    - Expected time: 15-30 minutes (includes browser installation on first run)
 
 5. **Before Finalizing** (all components complete)
-   - Run full CI: `.\ci\gh.ps1`
+   - Run full CI: `.\ci\ci.ps1`
    - Verify: All tests pass (100% green)
    - Fix: Any remaining issues
    - Expected time: 30 seconds (cached browsers)
 
 ### CI/CD Workflow Location and Usage
 
-**Location**: `{SolutionName}/ci/gh.ps1`
+**Location**: `{SolutionName}/ci/ci.ps1`
 
 **Purpose**: Simulates the complete CI pipeline locally, catching issues before they propagate
 
@@ -1398,7 +1398,7 @@ The most common quality issues arise when implementations are not tested until t
 ```powershell
 # From solution ci/ directory
 cd .\ci\
-.\gh.ps1
+.\ci.ps1
 ```
 
 **What It Does** (in order):
@@ -1437,19 +1437,19 @@ cd .\ci\
 **Correct Iteration**:
 ```
 1. Create projects structure
-   └─ Run: .\gh.ps1 → Lint passes ✓
+   └─ Run: .\ci.ps1 → Lint passes ✓
    
 2. Implement GlobalSetup, PlaywrightTestBase, Sut
-   └─ Run: .\gh.ps1 → Build passes ✓
+   └─ Run: .\ci.ps1 → Build passes ✓
    
 3. Add Page Objects (HomePage, ProductsPage)
-   └─ Run: .\gh.ps1 → Build passes ✓
+   └─ Run: .\ci.ps1 → Build passes ✓
    
 4. Add Test Methods (10+ tests)
-   └─ Run: .\gh.ps1 → All tests pass ✓
+   └─ Run: .\ci.ps1 → All tests pass ✓
    
 5. Add Critical Journeys
-   └─ Run: .\gh.ps1 → All tests pass ✓
+   └─ Run: .\ci.ps1 → All tests pass ✓
    
 RESULT: High-quality implementation, zero surprises
 ```
@@ -1459,7 +1459,7 @@ RESULT: High-quality implementation, zero surprises
 1. Create ALL projects
 2. Implement ALL code
 3. Add ALL tests
-4. Run .\gh.ps1 for the first time
+4. Run .\ci.ps1 for the first time
    └─ 15+ errors discovered at once
    └─ Takes hours to untangle
    └─ Quality suffers
@@ -1517,7 +1517,7 @@ dotnet format --verify-no-changes
 
 ### CRITICAL: CI/CD Script Validation Rules
 
-**Golden Rule**: Always use `./gh.ps1` to validate changes. If you cannot validate with just `./gh.ps1`, the script needs enhancement.
+**Golden Rule**: Always use `./ci.ps1` to validate changes. If you cannot validate with just `./ci.ps1`, the script needs enhancement.
 
 **Why This Matters**:
 - The CI/CD pipeline is the source of truth for solution quality
@@ -1526,8 +1526,8 @@ dotnet format --verify-no-changes
 
 **Validation Workflow**:
 
-From the solution `ci/` directory, run only `./gh.ps1`. No other commands needed:
-- Do NOT use intermediate build scripts, only gh.ps1
+From the solution `ci/` directory, run only `./ci.ps1`. No other commands needed:
+- Do NOT use intermediate build scripts, only ci.ps1
 - Do NOT filter output with Select-String, head, tail, or grep
 - Do NOT redirect to files or use piping
 - Do NOT use different verbosity settings on the command line
@@ -1553,7 +1553,7 @@ Some warnings are informational only (like NuGet package resolution notices). Co
 Each warning has an identifier (e.g., `NU1603`). To suppress:
 1. Identify the warning code from the build output
 2. Add it to the `suppressWarnings` array
-3. Re-run `./gh.ps1` to verify the warning no longer appears
+3. Re-run `./ci.ps1` to verify the warning no longer appears
 
 This filters noise while keeping real compilation errors visible.
 
@@ -1567,7 +1567,7 @@ The `build-test.ps1` scripts automatically:
 
 **To Change Pipeline Behavior**:
 1. Edit `build-configuration.json` (not the scripts)
-2. Re-run `./gh.ps1` to validate
+2. Re-run `./ci.ps1` to validate
 3. Commit the configuration file
 
 ---

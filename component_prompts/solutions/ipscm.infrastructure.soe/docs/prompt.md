@@ -7,18 +7,18 @@ DOCUMENTATION_FOLDER: BASE_FOLDER/docs. Except for prompt.md this is where all o
 CI_FOLDER: BASE_FOLDER/ci. contains configs folder containing .json files that contain the configuration for the scripts. this folder should already be pre-seeded with ci.ps1 and the configs folder.
 WORKING_DIRECTORY: BASE_FOLDER/src/fs-resize. this is the working folder that we will use to execute a script to solve the problem (eg run rpi-imager, qemu etc).
 MAIN_SCRIPT: CI_FOLDER/ci.ps1. calls ORCHESTRATION_SCRIPT_NAME with the -configurationFolder parameter. this will be relative to the ORCHESTRATION_SCRIPT_NAME - eg ..\ci\configs
-ORCHESTRATION_SCRIPT_NAME: WORKING_DIRECTORY/run.ps1. the script which is used to do the actual work. eg download/customize an image, start a virtual machine etc. 
+ORCHESTRATION_SCRIPT_NAME: WORKING_DIRECTORY/invoke-deployment.ps1. the script which is used to do the actual work. eg download/customize an image, start a virtual machine etc. 
 ASSETS_FOLDER: WORKING_DIRECTORY/assets. eg firstrun.sh used to configure the raspberry pi vm. 
 TEMPORARY_ASSETS: WORKING_DIRECTORY/temporary_assets. files that are required by the script but would be generated at run time. eg ssh keys for pre-seeding the host. create if not exist, and remove at the end of the script.
-CACHED_ASSETS: WORKING_DIRECTORY/cached_assets these are files that used in the pipeline but are the same for each time the run.ps1 is executed. eg the rapsberry-pi OS image. assets in this folder are not cleaned up post script execution so that the can be used next time. if they do not exist, then they should be create/downloaded etc and if they cannot the script should fail. the filenames of these assets should match the original source/purpose - eg 2025-12-04-raspios-trixie-arm64-lite.img.xz which is the file name of the url to get the raspberry pi image should be the name of the file. 
+CACHED_ASSETS: WORKING_DIRECTORY/cached_assets these are files that used in the pipeline but are the same for each time the invoke-deployment.ps1 is executed. eg the rapsberry-pi OS image. assets in this folder are not cleaned up post script execution so that the can be used next time. if they do not exist, then they should be create/downloaded etc and if they cannot the script should fail. the filenames of these assets should match the original source/purpose - eg 2025-12-04-raspios-trixie-arm64-lite.img.xz which is the file name of the url to get the raspberry pi image should be the name of the file. 
 also - generate a  hash of the file (use any available) so we are able to check if the file is valid. use the original file hash from the source if it's available, otherwise generate it when the file is created and verify it ahead of using the file. fail the script if the hash does not match the file contents. the md5 filename should match the original filename but with the correct extension on it - eg .md5, .sha256 etc.
 
 other folders. 
 
 patterns/folders:
 
-The run.ps1 used by this solution is the tooling ps1 pattern. 
-ci.ps1 and configs/ (JSON config files) go in CI_FOLDER. run.ps1 and all work scripts go in WORKING_DIRECTORY. Do not reference files outside of BASE_FOLDER; if you need any additional code, copy it into WORKING_DIRECTORY.
+The invoke-deployment.ps1 used by this solution is the tooling ps1 pattern. 
+ci.ps1 and configs/ (JSON config files) go in CI_FOLDER. invoke-deployment.ps1 and all work scripts go in WORKING_DIRECTORY. Do not reference files outside of BASE_FOLDER; if you need any additional code, copy it into WORKING_DIRECTORY.
 
 Patterns/guidelines to reference:
 read ~git/internal/Prompts/agents.md for patterns relating to orchestration scripts, powershell coding guidelines and others.
@@ -98,7 +98,7 @@ No backups required.
 Do not do any git or github actions.
 Assume no permissions or connectivity issues.
 No user impact. there are no users. 
-The run.ps1 should be idempotent with all of it's operations.
+The invoke-deployment.ps1 should be idempotent with all of it's operations.
 Each phase is not complete until the orchestration script runs successfully. 
 
 ## Phases.
