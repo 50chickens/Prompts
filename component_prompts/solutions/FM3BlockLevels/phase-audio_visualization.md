@@ -49,7 +49,47 @@ SpectrumDiff: psdA[i]=10.0, psdB[i]=9.0 returns result[i]=1.0.
 SpectrumNormalizer: +6dB offset shifts all bins by 6.0.
 SpectrumOverlay: two sources updated, GetLatest returns both with correct values.
 
+## Spectrogram Diff Export
+
+### Purpose
+
+Generate a time×frequency PNG image showing the EQ difference between two WAV files. Colour intensity represents the magnitude of dB difference per frequency bin across the length of the recording. Uses SkiaSharp for PNG rendering (Windows-compatible, no GUI framework required). This covers the "use Spectrogram to generate a time based EQ difference" requirement referenced in the Spectrogram C# library at C:\git\external\audio_visualization\Spectrogram.
+
+### Alsionyx.Library.Audio.Analysis
+
+Extend SpectrumDiffFrame: add double[] DbDiffPerBin. Populated by WavFileComparator as 10*log10(psdA[b]) - 10*log10(psdB[b]) per bin per frame. DiffPerBin (linear) remains for existing callers.
+
+### AudioLevels.Simple.ConsoleApp
+
+DiffSpectrogramExporter: void Export(SpectrumDiffFrame[] frames, int sampleRate, int blockSize, string outputPath, double rangeDb = 20.0).
+- Image dimensions: frameCount × binCount. Width = one column per FFT frame. Height = frequency bins from ~20Hz to Nyquist.
+- Frequency range: bins above 20Hz (skip DC and sub-bass). Linear frequency scale.
+- Colour: magnitude of dB diff per pixel mapped 0→black, rangeDb→white. Simple grayscale heatmap.
+- Y axis: low frequency at bottom (row 0 = highest frequency bin).
+- Writes PNG to outputPath. Creates parent directory if needed.
+- NuGet: SkiaSharp 2.88.8.
+
+WavFileComparator.CompareAsync: populate DbDiffPerBin for each frame using SpectrumDbConverter.ToDb on psdA and psdB before subtracting.
+
+Extend CompareOptions: add [Option("spectrogram")] optional string. When set, an exported PNG is saved to that path.
+
+Update CompareCommandHandler: inject DiffSpectrogramExporter. When options.Spectrogram is set, call Export after comparison.
+
+Update ServiceRegistration: register DiffSpectrogramExporter.
+
+### Unit Tests
+
+DiffSpectrogramExporterTests:
+- Export with empty frames does not throw.
+- Export with two frames and non-zero diffs writes a file with non-zero length.
+- Export with all-zero diffs (two identical files) writes a file (no exception).
+
+WavFileComparatorDbDiffTests:
+- After CompareAsync, Frames[0].DbDiffPerBin is non-empty and length equals BlockSize/2.
+- Two identical WAV files produce DbDiffPerBin values all at or near 0.0.
+
 ## Success Criteria
 Alsionyx.Library.Audio.Visualization builds with no GUI or hardware dependencies.
+audiolvls compare --file-a di.wav --file-b recorded.wav --spectrogram diff.png produces a PNG file.
 All unit tests pass using WaveFileDataFactory synthetic data only.
 CI passes.

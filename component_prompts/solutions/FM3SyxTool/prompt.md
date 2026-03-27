@@ -134,3 +134,13 @@ important: go and do the research first.
 don't do any commands line operations except to research the problem. But importantly a) use the tooling pattern to create any a command line tools or powershell functions that help you do the research, and do the research first & write a skills document. write the skills document to C:\git\internal\Prompts\component_prompts\solutions\FM3SyxTool\syx_file-format.md. use plaintext here. no decoration, annotations or indenting please. 
 
 
+Phase unknown_settings.
+
+i have created a new backup. the settings in the sytem page and what i have done are in the notes.txt. C:\dev\music\fm3\backups\backups_with_broken_sound\copilot_testing\current_backup_for_analysis5
+the goal here is to check if there are any bad settings left. the sound is very good but im wondering if there are any settings i have missed or anything that can cause problems in audio quality later. 
+
+how can i test what this is:
+
+Block 0, param 59 (BAD=128, GOOD=0) is the second half of the flag swap — not in the registry yet. Since param 47 is Input 1 Pad, param 59 could be Input 2 Pad or a related input section setting.
+
+Is there something i can set it the UI and either you can check the runtime value, or i can do another backup to identify it. or are there any parameters of setting you don't know where we can try and identify it? 

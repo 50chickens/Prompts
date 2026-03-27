@@ -10,6 +10,7 @@ phase-application_profiles.md
 phase-wav_foundation.md
 phase-wav_audio.md
 phase-audio_visualization.md
+phase-audio_stream_comparison.md
 phase-audio_compare.md
 phase-application_gui.md
 
@@ -20,7 +21,7 @@ FM3BlockLevels.slnx in c:\git\internal\fm3_analysis\src\FM3BlockLevels:
 Alsionyx.Library.NAudio.Asio - net9.0. NAudio ASIO device enumeration, output playback and multi-channel capture. NuGet: NAudio (nuget.org).
 Alsionyx.Library.Audio.Analysis - net9.0. FFT, THD, RMS, dBFS, latency. No external dependencies.
 Alsionyx.Library.Audio.Wav - net9.0. WAV file read/write using CSCore. NuGet: CSCore.
-Alsionyx.Library.Audio.Visualization - net9.0. Rolling metrics history and spectrum processing. No hardware dependencies.
+Alsionyx.Library.Audio.Visualization - net9.0. Rolling metrics history, spectrum diff/normalizer/overlay, streaming session manager. No hardware dependencies.
 AudioLevels.Simple.ConsoleApp - net9.0 console app. DefaultApplicationBuilder. NuGet: CommandLineParser, Ipscm.Library.Logging.
 AudioLevels.Tests - net9.0 NUnit test project. Unit tests only.
 

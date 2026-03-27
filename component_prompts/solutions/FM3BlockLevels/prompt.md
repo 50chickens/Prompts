@@ -105,9 +105,57 @@ detect what frequency and bitrate the .wav file is using and then set the input 
 use the recordings subfolder of the console apps running directory for holding the .wav files. 
 use the logs subfolder of the console apps running directory for holding log files. 
 
-phase audio_metadata_generation
+phase fm3-connection_test_tool.
 
-used to generate live & historical data for scrolling histograms of the audio metrics - THD, latency, input levels, differences in dbfs levels from the original reference .wav file. it can show the various metrics for the previous 30, 60 seconds etc seconds (but this is configurable). 
+the fm3 is definately connected and connected on COM7. 
+Write a seperate console app called AudioLevels.ConsoleApp.Fm3ConnectionTest. add an appsettings.json with only 1 property - FM3ComPort: COM7. it should only return "FM3: Connected" response or an exception if not connected. Can you query the windows device manager for the FM3 Communications Port device and then if present try & send a basic hello world syex command (maybe get version or info or cpu usage - some basic value which validates the connection). include this workflow in build-test.ps1. use the DI/Service/DefaultApplicationBuilder patterns. don't include any command line options. it should read the FM3ComPort setting and pass that to the constructor of the Fm3ConnectionTestService. but reuse as much existing library as possible. 
+
+
+phase fm3-library_real_time_levels
+
+i have moved FakeFm3RealtimeService to the unit test project. you probably need to check references. the goal now is to create the library that can connect to the fm3 and get the real time levels of all of teh blocks in the signal chain. i am not sure if it was usb midi or usb serial that we used last time. go and read the documentation under C:\git\internal\fm3_analysis\documentation about how to do this. 
+
+library the library first - then re-wire the console application to use this library. then in the AudioLevels.ConsoleApp.Tests project create an integration test that passes if we can get atleast 1 level from 1 block on the fm3. 
+
+some of the original analysi was trying to reverse engineer the firmware backups to see what we could derive from those. is there anything under C:\git\internal\fm3_analysis\other\firmware or C:\git\internal\Prompts\component_prompts\solutions\FM3SyxTool that can help. there is also the C:\git\internal\fm3_analysis\src\FM3SyxTool tool we wrote. note there are two use cases to .syx - one is for device backups and the other is for firmware updates but both are .syx. the goal here to is figure out if we can get real time block levels from the device in any way - serial, usb, other. 
+
+phase consolonia_nunit_test
+
+go and read C:\git\internal\Prompts\component_prompts\solutions\FM3BlockLevels\phase_consoleonia_realtime_application.md.. ths is an analysis of the fm3-edit UI. i want to rebuild it in consolonia which is a text version of avalonia. 
+
+i have a sample csproj - C:\git\internal\fm3_analysis\src\FM3BlockLevels\AudioLevels.ConsoleApp which it has given me some code to start with (and is not complete). under phase_consoleonia_realtime_application.md it has instructions on what would be required for the application and unit tests. 
+
+for the unit tests read the documention on the correct Nunit implementation - C:\git\external\Consolonia\src\Consolonia.NUnit\readme.md the problem we had before with the avalonia UI you built is that i asked unit tests but the UI you built was empty. none of the real time data from the fm3 was there. the goal here is to use the Alsionyx.Library.Fm3.Realtime and a corrosponding Alsionyx.Services.Fm3.Realtime (yet to be created) to show real time levels of each of the blocks in the fm3 signal chain. 
+Go and implement the UI and the tests. the success criteria is that the ConsoleApp shows the real time block levels in the console app. 
+
+The fm3 is connected on COM7 in this environment but if the tests fail that is ok. 
+
+What tests to the ConsoleApp.Tets perform? what im after is that the fm3 block levels are working and streaming data from the fm3 (eg updating in real time). do these tests validate that? 
+
+block levels where we are querying the fm3 for might be difficult to unit test as they represent a value at a point in time. maybe you can add a start/stop/pause workflow into the application and check for a non zero value for some block levels. 
+
+most importantly - there is a 4 x 12 grid in the fm3-edit that the console app should also have. this  4 x 12 grid should have the same blocks that the fm3 has and show the connections and block levels. the consolonia nunit test projects allow for us to test to ensure that text UI is showing both of those things. 
+
+phase audio_stream_comparison
+
+create a library to generate an EQ difference histogram for these scenarios:
+
+Full period analysis. 
+2 wav files. eg reference .wav with some .wav file that we have run through the signal chain. it should be a single chart that shows the EQ difference between two audio sources. 
+
+Real time histogram. this is where we have a real-time frequency spectrum of one or more audio sources. 
+Overlay of 2 audio sources in the real-time analysis. It should show frequency spectrum A and B simutaneously and optionally a real-time difference between the two. 
+teh audio sources can be either 
+live audio device streams - eg channel 1/2 and channel 3/4 an audio device (although this could be two seperate audio devices). 
+2 x wav files. 
+
+phase audio_stream_metadata
+Used to generate live & historical data for scrolling histograms of the audio metrics - THD, latency, input levels, differences in dbfs levels from the original reference .wav file. it can show the various metrics for the previous 30, 60 seconds etc seconds (but this is configurable). 
+
+phase audio_compare_app.
+
+Full period histogram. This is where we use Spectrogram to show a visualization of EQ difference over time.
+2 wav files. eg reference .wav with some .wav file that we have run through the signal chain. 
 
 add a compare .wav file to the simple console app.  the goal is that i want to do these comparisons get the frequency differences between the set of .wav files in each comparison. 
 
@@ -116,7 +164,15 @@ I have some some a/b testing and recorded some sample .wav files. the detail is 
 I want to know if there is a difference between scenerio 2 and 3. I hear something different in the audio and want to confirm it via analyzing the audio. the analysis should be done via the console app rather than any manual/typed commands 
 
 phase audio_visualization.
-create a audio visualization library for use in our application. 
+create a audio visualization library for use in our AudioLevels.Comparison.ConsoleApp. this is an avalonia based app. i want these UI panels which do the following.
+cerate a unit test project for it so we can have some confidence that it works. 
+1. one for showing the available audio devices and being able to select multiple channels audio from any of the input audio devices. 
+2. one for showing the real-time frequency spectrum from all of the selected audio devices. this should dynamically add/remove frequency spectrums if/when they are added/removed from the 1st panel.
+
+then use that library inAudioLevels.Comparison.ConsoleApp. 
+
+phase comparison_scenarios.
+
 generating the difference in frequency spectrum for two sets of data. eg the 1000hz frequency level in one sample is 10db and another .wav has the same frame as 11db. the output would be 1db. the goal here is to compare two output .wave files and generate a visualization that can show the differents in frequency spectrum at any point in the .wav file length (or for an entire file). an audio frame this sets of data could be either live audio or comparing two sets of  .wav files directly.
 able to apply a normalization - eg if two audio input channels have two different gain levels - we should be able to adjust one so that we can compare levels. eg the channel 3 and channel 1 on the fm3 are ~ 18 dbfs different. 
 it should be able to overlay multiple simultaneous input audio devices and simultaneous channels on the same device. 
@@ -125,7 +181,6 @@ check C:\git\external\audio_visualization\Spectrogram. it has a visualiztion for
 
 update plan.md for audio_visualization. C:\git\internal\Prompts\component_prompts\solutions\FM3BlockLevels\phase-audio_visualization.md. dont create any code yet. just create the plan.
 
-phase comparison_scenarios.
 
 Add a compare option to the simple console app that compares:
 Metal Guitar DI.wav - the original .wav file.
