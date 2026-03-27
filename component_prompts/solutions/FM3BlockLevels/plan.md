@@ -81,7 +81,7 @@ DI container resolution test required for every registration change.
 
 ci/configs/FM3BlockLevels.json: createNugetPackages: false, excludeCategories: [integration], build verbosity minimal.
 Target framework: net9.0. Build config: Debug only.
-gh.ps1 for local build: -NugetSourceName "local-nuget-repo".
+ci.ps1 for local build: -NugetSourceName "local-nuget-repo".
 build-test.ps1 called from GitHub Actions with default -NugetSourceName "github".
 dotnet format run and verified before commit. No project-level nuget.config files.
 

@@ -2,23 +2,26 @@
 
 There are 2 patterns of orchestration script but they both follow a similar path.
 
-1. scripts that are used to execute tooling. 
-2. scripts that are designed to compile software. these follow the gh.ps1 -> run.ps1 as we need the build process to work locally during development and then also when we run the build process under a github actions runner. 
+1. scripts that are used to execute tooling. these follow the ci.ps1 -> invoke-deployment.ps1 pattern.
+2. scripts that are designed to compile software. these follow the ci.ps1 -> build-test.ps1 -> invoke-deployment.ps1 pattern as we need the build process to work locally during development and then also when we run the build process under a github actions runner. 
 
-Examples of these patterns can be found the examples folder.
+high level. 
 
-tooling. Example scripts can be found under the examples\tooling folder.
-build. Example scripts can be found under the examples\build folder.
+1. the main entry hook is always ci.ps1. 
+2. ci.ps1 calls build-test.ps1 which can be a noop.
+3. ci.ps1 calls invoke-deploy.ps1
 
-## logging
+Examples of the build pattern can be found the examples folder. The tooling pattern is the same except build-test.ps1 is a noop script.
+
+## Pipeline logging
 
 Add timestamps to the log so we can see how long things have taken. 
-
-replace Write-Host function with Write-Log. 
+Wse Write-Log instead of write-host 
 
 ## include files. 
 
-we have a basic working script that we can extend now. there is the includes folder under the working directory. we dot source all of the files in there. 
+include files are .ps1 files which are dot sourced as a way to keep ci.ps1, build-test.ps1 and invoke-deployment.ps1 sizes down or to use DRY principals.
+If there is the includes folder under the working directory. we dot source all of the files in there. 
 they are categorized into sections where there is no overlap. eg if we swapped out repeating these script from raspberry pi arm64 to redhat x64 for example the changes would be isolated to removing the rasperry pi section and replacing it appropriately. you do not need to match function names here - eg if we switch from raspberry pi arm64 to redhat x64 don't give functions in the redhat.ps1 an incorrect name just to make them work. they should really represent the redhat equivalents. 
 
 ## configuration files. 
@@ -77,10 +80,10 @@ function Add-RequiredValuesToConfiguration($configuration)
 }
 
 
-## common - run.ps1
+## common - invoke-deployment.ps1
 
 general function pattern - 
-1. only pass $configuration. this mandatory.
+1. only pass $configuration. This is mandatory.
 2. have a write-host at the start of the function to indicate what the function will do/is for.
 3. collect variables used by the function at the start of the function. don't use $configuration.somepropery except at the start of the function to collect the variables used by the function.
 4. in linux don't use the /tmp folder for any reason. temporary files should go into the temporary_assets folder. 
@@ -99,7 +102,7 @@ function Invoke-GenerateSshKeypair($configuration) {
 
 Use powershell parameter splatting where possible. 
 Check for a non zero exit code and exit. 
-Write assets to disk outside of the run.ps1. run.ps1 for orchestrating the task - not writing dependencies at runtime. do not inline write files to disk - eg firstrun.sh. eg do not do this:
+Write assets to disk outside of the invoke-deployment.ps1. invoke-deployment.ps1 for orchestrating the task - not writing dependencies at runtime. do not inline write files to disk - eg firstrun.sh. eg do not do this:
 
 function Invoke-CreateFirstRunScript($configuration) {
     Write-Host "Creating firstrun.sh..."
@@ -119,17 +122,17 @@ Use PowerShell's -replace operator with [regex]::Escape() for literal placeholde
 When a recursive search function encounters items that may have child items in two different forms (inline vs remote), extract the child-item retrieval into a separate function. Do not mix fetching logic inside the search loop.
 If you need temporary but generated content - eg ssh keys these also go into the TEMPORARY_ASSETS folder. 
 
-## build - run.ps1.
+## build - ci.ps1 -> build-test.ps1 => invoke-deployment.ps1
 
-include a gh.ps1. this is override the nuget package source to LocalRepo so that push nuget packages to the LocalRepo instead of the github packages repo when running locally. this is so that we can test the entire pipeline before commiting/publishing packages to the github packages feed. 
-run.ps1 should only have 1 script parameter -nugetPackageSourceName. It should have a default name of github in run.ps1.
-run.ps1 should live in git repository root under the ci folder.  
-run.ps1 should generate a BuildNumber-based version which is then passed to build.xml as a parameter. BuildNumber uses ticks: $([System.DateTime]::UtcNow.Ticks.ToString('D').Substring(0, 9)). NugetVersion=$(MajorVersion).$(MinorVersion).$(BuildNumber). Do not append -Debug or -Release suffixes to package names. Clean version numbers only.
+include a ci.ps1. this is override the nuget package source to LocalRepo so that push nuget packages to the LocalRepo instead of the github packages repo when running locally. this is so that we can test the entire pipeline before commiting/publishing packages to the github packages feed. 
+invoke-deployment.ps1 should only have 1 script parameter -nugetPackageSourceName. It should have a default name of github in invoke-deployment.ps1.
+invoke-deployment.ps1 should live in git repository root under the ci folder.  
+invoke-deployment.ps1 should generate a BuildNumber-based version which is then passed to build.xml as a parameter. BuildNumber uses ticks: $([System.DateTime]::UtcNow.Ticks.ToString('D').Substring(0, 9)). NugetVersion=$(MajorVersion).$(MinorVersion).$(BuildNumber). Do not append -Debug or -Release suffixes to package names. Clean version numbers only.
 when calling any command lines tools such as dotnet or nuget - use logging level minimum but make the logging level a script level variable so that if additional logging is required it is a 1 line change. 
 By default the logging level should be minimal. 
 After editing any C# source files run dotnet format <solution> before finishing. The CI pipeline runs dotnet format --verify-no-changes and will fail on whitespace errors.
 only run integration tests if not running under github action. the RunIntegrationTests property in the configuration.json should default to false. we will set it to true if we are not running under GHA.
 
-## tooling - run.ps1 .
+## tooling - invoke-deployment.ps1 .
 
-all of the requirements that apply to the build version of run.ps1 apply to the tooling version of the run.ps1 except that we should create a ci.ps1 that calls run.ps1
+all of the requirements that apply to the build version of invoke-deployment.ps1 apply to the tooling version of the invoke-deployment.ps1 except that we should create a ci.ps1 that calls invoke-deployment.ps1 directly.

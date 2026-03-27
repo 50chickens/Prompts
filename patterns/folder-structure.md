@@ -93,7 +93,62 @@ AWS_INCLUDES_FOLDER. goes under COMMON_INCLUDES\aws. There are some scripts that
 
 ## Directory Tree.
 
-this is an example directory tree for a set of scripts where we do not have a remote host.
+## Tokens
+
+```
+REPO_ROOT                = C:\git\LinkedIn
+CI_FOLDER                = REPO_ROOT\ci
+CI_CONFIG_FOLDER         = CI_FOLDER\configs
+DEPLOYMENT_FOLDER        = REPO_ROOT\src\LinkedIn
+DEPLOYMENT_INCLUDES      = DEPLOYMENT_FOLDER\includes
+DEPLOYMENT_CONFIG_FOLDER = DEPLOYMENT_FOLDER\configs
+TOOLS_FOLDER             = DEPLOYMENT_FOLDER\tools\tools
+DATA_FOLDER              = REPO_ROOT\data
+FILES_FOLDER             = DATA_FOLDER\files
+ASSIGNMENTS_FOLDER       = DATA_FOLDER\LinkedIn\assignments
+```
+
+## REPO_ROOT layout
+
+```
+REPO_ROOT\
+├── ci\                                                  (CI_FOLDER)
+│   ├── ci.ps1
+│   ├── build-test.ps1
+│   └── configs\                                         (CI_CONFIG_FOLDER)
+│       └── linkedin.json
+├── src\
+│   └── LinkedIn\                                        (DEPLOYMENT_FOLDER)
+│       ├── invoke-deployment.ps1
+│       ├── configs\                                     (DEPLOYMENT_CONFIG_FOLDER)
+│       │   └── linkedin.json
+│       ├── includes\                                    (DEPLOYMENT_INCLUDES)
+│       │   ├── logging.ps1
+│       │   ├── configuration.ps1
+│       │   ├── assignment.ps1
+│       │   └── research.ps1
+│       └── tools\                                       (TOOLS_FOLDER)
+│           └── tools\
+│               └── chatgpt.exe
+├── data\                                                (DATA_FOLDER)
+│   ├── files\                                           (FILES_FOLDER)
+│   │   ├── background.md
+│   │   └── identify_candidate_constraints-template.md
+│   └── LinkedIn\
+│       └── assignments\                                 (ASSIGNMENTS_FOLDER)
+│           └── <AssignmentName>\
+│               ├── chatgpt\
+│               ├── LinkedIn\
+│               └── prompt\
+│                   └── identify_candidate_constraints.md
+└── documentation\
+    ├── plans\
+    │   ├── plan.md
+    │   └── structure.md
+    └── prompts\
+        └── prompt.md
+```
+
 
 ##insert example here.
 

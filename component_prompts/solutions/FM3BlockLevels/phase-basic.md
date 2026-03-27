@@ -14,4 +14,4 @@ Implement IAsioDeviceEnumerator. Stub IAsioOutputDevice and IAsioInputDevice.
 Wire DI, list verb.
 
 ## Success Criteria
-list verb prints ASIO driver names. Solution builds on CI. Zero test failures. gh.ps1 passes.
+list verb prints ASIO driver names. Solution builds on CI. Zero test failures. 
