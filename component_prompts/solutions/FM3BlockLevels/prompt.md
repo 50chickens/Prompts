@@ -54,8 +54,7 @@ Instructions.
 
 Read C:\git\internal\Prompts\agents.md and C:\git\internal\Prompts\workflow.md for guidelines for writing c# and how to iterate the software. it contains information and references about cross cutting concerns - eg logging. Code here is available as nuget packages but i have provided the original source code.
 
-
-application workflow. 
+Application workflow. 
 
 opens up an input device using naudio using asio to open a back end connection to a named input device. the default should be the HXStomp using channel 1. 
 Opens up an naudio using asio connection to a named output device. the default should be the Fm3 using Channel 1 and channel 3.
@@ -65,25 +64,24 @@ plays a sample signal on the output device and analyze it on the input device.
 allow me to choose the sending device. 
 allow me to choose multiple input devices and channels. do this via --input-device FM3:1,3 where 1 represents input channel and 3 represents input channel 3.
 
-application testing. 
+Application testing. 
 
 Create the console application first. you are complete when:
 You can send a THD test signal to the audio device (hx stomp on channel 1).
 It is received by the FM3 audio input device on both channels 1 and 3. note the levels & THD values can/will be different. 
 You can generate latency, levels, RMS and THD values. 
 
+Development phases.
 
-development phases.
-
-Phase basic:
+* Phase basic.
 
 A basic console application using naudio & asio that find each audio device by name. A functional CI pipeline. 
 
-phase audio_foundation.
+* phase audio_foundation.
 
 improve audio code robustness. review C:\git\external\audio\cscore to check if there are insights for improving reliability and support for things like handling multiple audio streams, duplex audio, improving round trip latency. pay attention to the architecture of the unit tests. 
 
-Phase audio_metrics. 
+* Phase audio_metrics. 
 
 Add audio metrics - latency, THD, levels and RMS calculations. 
 
@@ -104,37 +102,6 @@ Recorded channel 1 to Metal Guitar DI_Output_FM3_USB_Audio_Device_ch1_2026031404
 detect what frequency and bitrate the .wav file is using and then set the input & output audio devices as the same. don't resample the .wav file before sending. 
 use the recordings subfolder of the console apps running directory for holding the .wav files. 
 use the logs subfolder of the console apps running directory for holding log files. 
-
-phase fm3-connection_test_tool.
-
-the fm3 is definately connected and connected on COM7. 
-Write a seperate console app called AudioLevels.ConsoleApp.Fm3ConnectionTest. add an appsettings.json with only 1 property - FM3ComPort: COM7. it should only return "FM3: Connected" response or an exception if not connected. Can you query the windows device manager for the FM3 Communications Port device and then if present try & send a basic hello world syex command (maybe get version or info or cpu usage - some basic value which validates the connection). include this workflow in build-test.ps1. use the DI/Service/DefaultApplicationBuilder patterns. don't include any command line options. it should read the FM3ComPort setting and pass that to the constructor of the Fm3ConnectionTestService. but reuse as much existing library as possible. 
-
-
-phase fm3-library_real_time_levels
-
-i have moved FakeFm3RealtimeService to the unit test project. you probably need to check references. the goal now is to create the library that can connect to the fm3 and get the real time levels of all of teh blocks in the signal chain. i am not sure if it was usb midi or usb serial that we used last time. go and read the documentation under C:\git\internal\fm3_analysis\documentation about how to do this. 
-
-library the library first - then re-wire the console application to use this library. then in the AudioLevels.ConsoleApp.Tests project create an integration test that passes if we can get atleast 1 level from 1 block on the fm3. 
-
-some of the original analysi was trying to reverse engineer the firmware backups to see what we could derive from those. is there anything under C:\git\internal\fm3_analysis\other\firmware or C:\git\internal\Prompts\component_prompts\solutions\FM3SyxTool that can help. there is also the C:\git\internal\fm3_analysis\src\FM3SyxTool tool we wrote. note there are two use cases to .syx - one is for device backups and the other is for firmware updates but both are .syx. the goal here to is figure out if we can get real time block levels from the device in any way - serial, usb, other. 
-
-phase consolonia_nunit_test
-
-go and read C:\git\internal\Prompts\component_prompts\solutions\FM3BlockLevels\phase_consoleonia_realtime_application.md.. ths is an analysis of the fm3-edit UI. i want to rebuild it in consolonia which is a text version of avalonia. 
-
-i have a sample csproj - C:\git\internal\fm3_analysis\src\FM3BlockLevels\AudioLevels.ConsoleApp which it has given me some code to start with (and is not complete). under phase_consoleonia_realtime_application.md it has instructions on what would be required for the application and unit tests. 
-
-for the unit tests read the documention on the correct Nunit implementation - C:\git\external\Consolonia\src\Consolonia.NUnit\readme.md the problem we had before with the avalonia UI you built is that i asked unit tests but the UI you built was empty. none of the real time data from the fm3 was there. the goal here is to use the Alsionyx.Library.Fm3.Realtime and a corrosponding Alsionyx.Services.Fm3.Realtime (yet to be created) to show real time levels of each of the blocks in the fm3 signal chain. 
-Go and implement the UI and the tests. the success criteria is that the ConsoleApp shows the real time block levels in the console app. 
-
-The fm3 is connected on COM7 in this environment but if the tests fail that is ok. 
-
-What tests to the ConsoleApp.Tets perform? what im after is that the fm3 block levels are working and streaming data from the fm3 (eg updating in real time). do these tests validate that? 
-
-block levels where we are querying the fm3 for might be difficult to unit test as they represent a value at a point in time. maybe you can add a start/stop/pause workflow into the application and check for a non zero value for some block levels. 
-
-most importantly - there is a 4 x 12 grid in the fm3-edit that the console app should also have. this  4 x 12 grid should have the same blocks that the fm3 has and show the connections and block levels. the consolonia nunit test projects allow for us to test to ensure that text UI is showing both of those things. 
 
 phase audio_stream_comparison
 
@@ -181,7 +148,6 @@ check C:\git\external\audio_visualization\Spectrogram. it has a visualiztion for
 
 update plan.md for audio_visualization. C:\git\internal\Prompts\component_prompts\solutions\FM3BlockLevels\phase-audio_visualization.md. dont create any code yet. just create the plan.
 
-
 Add a compare option to the simple console app that compares:
 Metal Guitar DI.wav - the original .wav file.
 scenario_1_output_copy_channel_1_to_channel_2\Metal Guitar DI_Output_FM3_USB_Audio_Device_ch3_fm3_output2_block_20260314115216.wav - this is when i use the 'copy audio output 1 to audio output 2' in the settings of the fm3. 
@@ -190,8 +156,7 @@ comparison 1: C:\git\internal\fm3_analysis\mp3_comparison\original\Metal Guitar 
 comparison 2: C:\git\internal\fm3_analysis\mp3_comparison\original\Metal Guitar DI.wav to C:\git\internal\fm3_analysis\mp3_comparison\scenario_2_output_copy_none\Metal Guitar DI_Output_FM3_USB_Audio_Device_ch3_20260314115359.wav
 comparison 3: C:\git\internal\fm3_analysis\mp3_comparison\scenario_1_output_copy_channel_1_to_channel_2\Metal Guitar DI_Output_FM3_USB_Audio_Device_ch3_fm3_output2_block_20260314115216.wav to C:\git\internal\fm3_analysis\mp3_comparison\scenario_2_output_copy_none\Metal Guitar DI_Output_FM3_USB_Audio_Device_ch3_20260314115359.wav
 
-
-phase aplication_gui.
+Phase Application_gui.
 
 build a more complex gui application using avalonia for visualizing the audio metrics. 
 include gui ui equivalents of the command line options that are available in the console app.
