@@ -58,7 +58,7 @@ REPO_ROOT\
     │
     ├── configure-ipscminet-dc\ (Invoke-ConfigureIpscminetDc)
     ├── configure-pbs-dc\ (Invoke-ConfigurePbsDc)
-    ├── configure-managed-ad-gpo\ (Invoke-ConfigureManagedAdGpo)
+
     ├── configure-trust\ (Invoke-ConfigureTrust)
     ├── configure-managed-member\ (Invoke-ConfigureManagedMember)
     └── teardown\ (Invoke-Teardown)
@@ -136,32 +136,32 @@ Each CFT phase includes an `Invoke-ValidateDeployment` function that verifies th
   Deploys managed-ad.yaml CFT. Creates the AWS Managed AD directory with DNS name test.ipscm and NetBIOS
   name TEST (Standard edition). Stack outputs the two Managed AD DNS IPs. After the stack completes,
   invokes Invoke-UpdateDhcpOptions to update the networking DHCP options set to use those DNS IPs.
+  Writes the two Managed AD DNS IP addresses to SSM Parameter Store (one parameter per IP) so that
+  instance scripts can retrieve them at runtime for conditional forwarder configuration. Creates a
+  SecureString SSM Parameter Store parameter at /aws/directory-services/{directoryId}/joinDomain
+  containing JSON with the Managed AD admin username and plaintext password, enabling SSM agent seamless
+  domain join for EC2 instances at launch.
   Invoke-ValidateDeployment: confirms directory status is Active via DescribeDirectories. Tags the
   managed-ad CFT stack on success.
 
-- configure-managed-ad-gpo (`Invoke-ConfigureManagedAdGpo`)
-  Host script: creates a Windows Server 2022 EC2 management instance via the EC2 API (not CFT), using the
-  same IAM instance profile and security group as other instances. Uses user data to run a PowerShell script
-  that domain-joins the instance to test.ipscm using the Managed AD admin credentials retrieved from
-  Secrets Manager, then reboots. Stores the management instance ID in SSM Parameter Store for use by the
-  teardown phase. Waits for SSM agent re-registration after the domain-join reboot before issuing Run Command.
-
-  The management instance is stopped (not terminated) after this phase completes.
-
 - rds (`Invoke-DeployRds`)
   Deploys rds.yaml CFT. Creates a DB subnet group using the private subnet. Creates a SQL Server RDS
-  instance with Windows Authentication enabled (Domain set to the Managed AD directory ID,
-  DomainIAMRoleName set to the IAM role from the iam phase). No public accessibility.
+  instance (Standard or Enterprise edition — Express does not support Managed AD Windows Authentication)
+  with Windows Authentication enabled (Domain set to the Managed AD directory ID, DomainIAMRoleName set
+  to the IAM role from the iam phase). No option group is required for SQL Server AD authentication; the
+  Domain and DomainIAMRoleName properties are sufficient. No public accessibility.
   Invoke-ValidateDeployment: confirms RDS instance status is available and DomainMemberships shows the
   Managed AD directory in a joined state. Tags the rds CFT stack on success.
 
 - ec2-instances (`Invoke-DeployEc2Instances`)
-  Deploys ec2-instances.yaml CFT. Creates 3 Windows Server 2022 instances, each attached to its
+  Deploys ec2-instances.yaml CFT. The Windows Server 2022 AMI ID is resolved at deploy time using the
+  CloudFormation dynamic reference {{resolve:ssm:/aws/service/ami-windows-latest/Windows_Server-2022-English-Full-Base}}
+  as the ImageId — no hardcoded AMI ID. Creates 3 Windows Server 2022 instances, each attached to its
   pre-assigned ENI from the networking phase:
   - ipscminet-dc: forest root DC for ipscminet.com. Not domain joined at launch.
   - pbs-dc: child domain DC for pbs.ipscminet.com. Not domain joined at launch.
-  - managed-member: joined to test.ipscm Managed AD at launch via the Domain CFT property. SQL 2019
-    will be installed here.
+  - managed-member: joined to test.ipscm Managed AD at launch via SSM agent seamless domain join using
+    the credentials SSM parameter created in the managed-ad phase. SQL 2019 will be installed here.
   All instances use the IAM instance profile from the iam phase, the default security group, and the
   private subnet. Access is exclusively via Session Manager (no key pairs, no public IPs).
   Invoke-ValidateDeployment: verifies all 3 instances are in running state and registered with SSM.
@@ -192,12 +192,15 @@ Each CFT phase includes an `Invoke-ValidateDeployment` function that verifies th
 
 - configure-trust (`Invoke-ConfigureTrust`)
   Host script: calls AWS DirectoryService API to add conditional forwarders in Managed AD for
-  ipscminet.com (→ ipscminet-dc) and pbs.ipscminet.com (→ pbs-dc). Calls New-DSTrust to create a
-  one-way outgoing trust from test.ipscm to pbs.ipscminet.com (pbs users can authenticate to test.ipscm
+  ipscminet.com (→ ipscminet-dc) and pbs.ipscminet.com (→ pbs-dc). Retrieves the shared trust password
+  from Secrets Manager (via its SSM Parameter Store ARN) then calls New-DSTrust to create a one-way
+  outgoing trust from test.ipscm to pbs.ipscminet.com (pbs users can authenticate to test.ipscm
   resources). Waits for SSM registration on pbs-dc then downloads configure-trust-pbs-side.ps1 from S3
   via SSM Run Command.
   Instance script: adds the reciprocal incoming trust on the pbs.ipscminet.com side using netdom,
   retrieving the shared trust password from Secrets Manager.
+  After the instance script completes, the host script polls Get-DSTrust (DescribeTrusts) until
+  TrustState equals Verified before the phase completes.
 
 - configure-managed-member (`Invoke-ConfigureManagedMember`)
   Host script waits for SSM agent registration on managed-member.
@@ -210,7 +213,7 @@ Each CFT phase includes an `Invoke-ValidateDeployment` function that verifies th
   cross-domain GPO from pbs.ipscminet.com cannot apply to machines in test.ipscm.
 
 - teardown (`Invoke-Teardown`)
-  Terminates EC2 instances (ipscminet-dc, pbs-dc, managed-member, management instance). Deletes CFT stacks
+  Terminates EC2 instances (ipscminet-dc, pbs-dc, managed-member). Deletes CFT stacks
   in reverse order: ec2-instances, rds, managed-ad, s3-bucket (after emptying bucket), iam, networking.
   Deletes all Secrets Manager secrets created in the secrets phase. Deletes all SSM Parameter Store
   parameters created in the secrets phase. Deletes the pre-assigned ENIs if not automatically removed
