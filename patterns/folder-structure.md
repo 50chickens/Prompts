@@ -25,13 +25,14 @@ DEPLOYMENT_FOLDER. This is also REPO_ROOT/src but used for scenarios where we do
 
 SRC_SCRIPTS_FOLDER. this is DEPLOYMENT_FOLDER/scripts. it contains the invoke-deployment.ps1.
 
-note there maybe both SOLUTION_FOLDERS and DEPLOYMENT_FOLDER under SRC_FOLDER. eg
+note there maybe both SOLUTION_FOLDERS and DEPLOYMENT_FOLDER1 under SRC_FOLDER and each can contain multiple subfolders . eg
 
 SRC_FOLDER \
     solution1.slnx.
     SOLUTION_FOLDER1\project1.csproj.
     SOLUTION_FOLDER2\project2.csproj.
-    DEPLOYMENT_FOLDER\invoke-deployment.ps1.
+    DEPLOYMENT_FOLDER1\invoke-deployment.ps1. #for task 1. 
+    DEPLOYMENT_FOLDER2\invoke-deployment.ps1. #for task 2. 
 
 # Main Scripts.
 
@@ -64,7 +65,8 @@ DEPLOYMENT_CACHED_ASSETS. DEPLOYMENT_SCRIPTS/cached_assets.
 
 Configuration specific to where we need to seperate scripts that run on a host versus scripts that are run on a remote host. This is not the default pattern.
 
-HOST_SCRIPTS - SRC_SCRIPTS_FOLDER/host. This is the scripts that are run on the machine running INVOKE_DEPLOYMENT_SCRIPT. This is so that we can keep scripts running as part of INVOKE_DEPLOYMENT_SCRIPT seperate from INSTANCE_SCRIPTS
+HOST_SCRIPTS - SRC_SCRIPTS_FOLDER/host. This is the scripts that are run on the machine running INVOKE_DEPLOYMENT_SCRIPT. This is so that we can keep scripts running as part of INVOKE_DEPLOYMENT_SCRIPT seperate from INSTANCE_SCRIPTS. 
+
 
 HOST_ASSETS_FOLDER: HOST_SCRIPTS/assets. eg instance-metadata.sh which is used to configure an ssh connection on an ec2 instance.
 HOST_TEMPORARY_ASSETS: HOST_SCRIPTS/temporary_assets. Files that are required by the script but would be generated at run time. eg ssh keys for pre-seeding the host. create if not exist, and remove at the end of the script.
