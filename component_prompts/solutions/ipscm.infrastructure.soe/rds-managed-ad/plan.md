@@ -267,7 +267,11 @@ not AWS.Tools.S3.
 - configure-trust (`Invoke-ConfigureTrust`)
   Sets Status-Invoke-ConfigureTrust = InProgress on the ec2-instances CFT stack at the start of execution.
   On ci.ps1 restart with this tag in InProgress, cross-checks CloudWatch log stream
-  {timestamp}-Invoke-ConfigureTrust for the latest DeploymentScriptStatus before deciding to resume or fail.
+  {timestamp}-Invoke-ConfigureTrust for the latest DeploymentScriptStatus before deciding to resume or
+  fail. Three sub-cases: (a) no stream entries or DeploymentScriptStatus=InProgress → re-poll pbs-dc
+  for Online then re-issue the SSM Run Command; (b) DeploymentScriptStatus=Completed → the instance
+  script has already finished, skip re-issuing the SSM Run Command and resume polling DescribeTrusts
+  directly; (c) DeploymentScriptStatus=Failed → fail the phase.
   Host script: calls AWS DirectoryService API to add conditional forwarders in Managed AD for
   ipscminet.com (→ ipscminet-dc) and pbs.ipscminet.com (→ pbs-dc). Retrieves the shared trust password
   from Secrets Manager (via its SSM Parameter Store ARN) then calls New-DSTrust to create a one-way

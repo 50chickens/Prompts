@@ -22,11 +22,13 @@ We need to understand if there are specific processes, mechanisms, strategies on
 we need to know if there are constraints that apply to that (eg we need a username & password and we need a way to access those credentials). 
 We don't include script level implementation details in prompt.md. eg call the aws secret /someSecretContainingSomeCredentials. These are implementation details and should not go in here. 
 Only append to prompt.md. this is so that we can evaluate whether things are the right approach and if they are should be the way we implement things. 
+don't include things we have considered but have ruled out. 
 
 what to include in plan.md.
 This is the physical orchestration script that will bring our goal to life. 
 it implements a sequence of events (eg deploying a CFT, domain joining an ec2 server to the domain). 
 We should document too many implementation details here. these will be put into configuration files and it is important that the configuration not the documentation be the authoritive source here.
+don't include things we have considered but have ruled out. 
 
 plan.md.
 This is how our orchestration script implements the prompt.md. it has details like:
