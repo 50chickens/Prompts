@@ -164,7 +164,7 @@ not AWS.Tools.S3.
   at the start of execution. Uses the Secrets Manager GenerateRandomPassword endpoint to create secrets for:
   Managed AD admin password, ipscminet.com domain admin password, ipscminet.com Safe Mode Administrator
   password, pbs.ipscminet.com domain admin password, pbs.ipscminet.com Safe Mode Administrator password,
-  non-administrator user password, and trust shared password. Secret ARNs are stored as SSM Parameter Store
+  non-administrator user password, trust shared password, and RDS master user password. Secret ARNs are stored as SSM Parameter Store
   parameters for retrieval by instance scripts. Writes Status-Invoke-CreateSecrets = Completed to SSM
   Parameter Store on success.
 
@@ -199,7 +199,10 @@ not AWS.Tools.S3.
   instance (Standard or Enterprise edition — Express does not support Managed AD Windows Authentication)
   with Windows Authentication enabled (Domain set to the Managed AD directory ID, DomainIAMRoleName set
   to the IAM role from the iam phase). No option group is required for SQL Server AD authentication; the
-  Domain and DomainIAMRoleName properties are sufficient. No public accessibility.
+  Domain and DomainIAMRoleName properties are sufficient. No public accessibility. The invoke-deployment.ps1
+  retrieves the RDS master user password from Secrets Manager (using the ARN stored in SSM Parameter Store
+  by the secrets phase) at deploy time and passes it — along with the master username (from
+  rds-managed-ad.local.json) — to the rds.yaml CFT as the MasterUsername and MasterUserPassword parameters.
   Invoke-ValidateDeployment: confirms RDS instance status is available, then polls DomainMemberships
   until the Managed AD directory shows status joined. The domain join is asynchronous — the CFT stack
   may report CREATE_COMPLETE while DomainMemberships is still in a joining state. Tags the rds CFT
@@ -297,12 +300,14 @@ not AWS.Tools.S3.
   the host issues SSM Run Command with configure-managed-member.ps1. Polls the CloudWatch log stream
   {timestamp}-Invoke-ConfigureManagedMember asynchronously for DeploymentScriptStatus changes.
   Instance script: runs from c:\bootstrap\. Writes InProgress to CloudWatch. Disables Windows Firewall
-  via Set-NetFirewallProfile. Downloads the SQL Server 2019 Developer installer directly from the internet
-  (URL TBD — placeholder to be filled in before implementation). Installs SQL Server 2019 in quiet mode
-  with Windows Authentication only. Creates the HelloWorld database. Creates a Windows Authentication
-  login for the pbs non-administrator user. Grants that user db_datareader and db_datawriter on HelloWorld.
-  Grants that user the Allow log on locally right via local security policy (secedit). Writes
-  DeploymentScriptStatus: Completed (or Failed with full exception detail) to CloudWatch. Host script sets
+  via Set-NetFirewallProfile. Installs Microsoft ODBC Driver for SQL Server and the standalone sqlcmd
+  client (no SQL Server engine). Retrieves the RDS master user credentials (username and password) from
+  Secrets Manager (ARN from SSM Parameter Store). Connects to the RDS endpoint using sqlcmd with SQL
+  Server Authentication as the master user. Executes T-SQL under that single connection: CREATE DATABASE
+  HelloWorld, CREATE LOGIN [PBS\<user>] FROM WINDOWS, USE HelloWorld, CREATE USER [PBS\<user>] FOR LOGIN
+  [PBS\<user>], grant db_datareader and db_datawriter to that user. The RDS endpoint hostname and pbs
+  username are read from rds-managed-ad.instance.json (no hardcoding). Writes DeploymentScriptStatus:
+  Completed (or Failed with full exception detail) to CloudWatch. Host script sets
   Status-Invoke-ConfigureManagedMember = Completed (or Failed) on the ec2-instances CFT stack.
 
 - teardown (`Invoke-Teardown`)

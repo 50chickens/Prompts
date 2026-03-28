@@ -3,6 +3,27 @@ We need to create an aws environment for testing the following scenarios
 If i can log into a domain member of pbs.ipscminet.com and use either active directory credentials or IAM credentials to access a resource in the test.ipscm domain where test.ipscm has a one way trust to pbs.ipscminet.com.
 
 constraints:
+the scripts that we have setup here are to setup a test environment which mirrors our real one. As we are testing we want to focus on what is possible, not what we have setup correctly. Assume that whatever DNS for the scenario has been completed and the user will have access to the database. these are unimportant to the goal. 
+assume that connectivity between the user and the MSSQL RDS instance is not a problem. ignore any DNS, Firewalls, or other connectivity problems. Assume that whatever DNS configruations are required to be done to support the authentication story that they have been completed.
+Assume that the user has permissions to the database. 
+for windows the user is logged onto a pbs.ipscminet.com domain joined windows device. 
+for the mac user they will use pbs.ipscminet.com credentials (but use the kerberos/sso flow to get iam credentials).
+We have setup an AWS SSO flow (this is already setup in the account that we will use to test the scenario). the authentication flow for that is under C:\git\internal\aws_scripts\aws\SSO\docs\identity-center-azure.
+both windows & mac users have a pbs.ipscminet.com AD account and this allows them to SSO login to the AWS Account. we want to provision MSSQL based RDS and have the following scenarios we want to test. 
+
+we have two slightly different scenarios: 
+scenario 1. We are testing can a user on windows in a trusted domain account able to use a RDS (based on MSSQL) database where we have a managed active directory with a one way trust. 
+scenario 2. We are testing can a user on mac authenticate to an RDS (based on MSSQL) database using Kerberos, where test.ipscm has a one-way trust to pbs.ipscminet.com. IAM credentials obtained via SSO are for AWS API calls only — SQL Server does not support IAM database authentication, so SQL connections must use Kerberos. The Mac user obtains a TGT for the pbs.ipscminet.com realm via kinit (krb5.conf configured for the PBS.IPSCMINET.COM realm with KDC pointing to pbs-dc). The SQL connection uses ODBC Driver 18 for SQL Server with Windows Authentication (Trusted_Connection=Yes). RDS resolves [PBS\<user>] via the one-way trust, identical to scenario 1. The same Windows Auth login provisioned in configure-managed-member is used for both scenarios — no additional SQL Server Auth login is required. 
+
+both scenarios:
+we are required to have a managed active directory. Both scenarios authenticate to RDS using Windows Authentication via Kerberos — Managed AD is required for RDS domain join and trust resolution in both cases. 
+we are required to use RDS based MSSQL.
+we are required that the user exists in pbs.ipscminet.com. even in scenario 1 the user will authenticate using kerberos where the credentials still originate from pbs.ipscminet.com 
+we are required to have a one way trust. 
+we are required to either 
+    - apply permissions in the test.ipscm sql instance to the domain account of the pbs.ipscminet.com based user. 
+    - apply iam permissions to the sql instance based on credentials. 
+assume we have an alternate pipeline for creating databases and assigning windows permissions. these details are unimportant to the goal in this case. 
 
 plan.md
 Don't create example config files in the plan.md - just use a short annotation like: 
@@ -114,6 +135,7 @@ The script that polls the cloudwatch log group should asynchronously poll the lo
 All AWS resources that are in scope for running instance scripts will need access to create cloudwatch log groups and log streams and write data to it. 
 
 AWS.
+We should not remove any AWS resources that are not under scope of this testing for any reason whatsoever. 
 Create only 1 vpc with 3 /24 subnets. one in each AZ. 
 All machines should use dhcp options.
 All aws resources should be private with no public or external internet access via AWS (eg IAM permissions/external/public s3 bucket urls) to any of them unless otherwise specified.
@@ -143,12 +165,7 @@ Windows/Active Directory Constraints.
 
 All windows servers should have firewalls turned off via the instance scripts.
 Create a non administrator account on the pbs.ipscminet.com domain.
-the domain member needs to have sql 2019 installed. 
-the sql 2019 server needs to have a helloworld database created. 
-the non administrator user needs to be able to log onto the pbs.ipscminet.com domain member server and be able to access the sql 2019 helloworld database. 
-you need to give the non administrator user logon access to the pbs.ipscminet.com domain member server. 
 Instance scripts that trigger an OS reboot (domain controller promotion via Install-ADDSForest or Install-ADDSDomain) must be split into two scripts: a pre-reboot script and a post-reboot script. The host script must issue the pre-reboot SSM Run Command, wait for the instance to become unavailable to SSM (indicating the reboot has occurred), then wait for SSM re-registration before issuing the post-reboot Run Command.
-The Allow log on locally right for the pbs non-administrator user on managed-member must be applied on managed-member itself via local security policy. A GPO linked at the pbs.ipscminet.com domain does not apply to machines in test.ipscm. This must be done in the configure-managed-member instance script.
 
 AWS Domain join constraints.
 The configure-trust host script must retrieve the shared trust password from Secrets Manager (via its SSM Parameter Store ARN) before calling New-DSTrust — the same secret used by the pbs-dc instance script on the reciprocal side. After the pbs-dc instance script completes, the host script must poll Get-DSTrust (DescribeTrusts) until TrustState equals Verified before the phase completes. configure-managed-member must not run until this is confirmed.
@@ -160,13 +177,14 @@ Install-ADDSForest and Install-ADDSDomain require a SafeModeAdministratorPasswor
 The /aws/directory-services/{directoryId}/joinDomain SSM Parameter Store parameter provides the credentials, but it does not trigger domain join on its own. The SSM agent only joins the domain when an SSM State Manager Association targets the instance with the AWS-JoinDirectoryServiceDomain document.
 This Association must be created explicitly — it is not automatic. Only managed-member should receive this Association. ipscminet-dc and pbs-dc must not be associated with this document as they must boot unjoined and promote themselves as domain controllers. The Association should be created in the ec2-instances invoke-deployment.ps1 after the CFT stack completes, using the managed-member instance ID queried from the EC2 API.
 
-sql constraints. 
-the domain member that needs SQL should download it directly from the internet. we don't need to know the url/process for this right now. use a placeholder where we will fill it in later. 
+sql constraints.
 The RDS SQL Server instance must use Standard or Enterprise edition. Express edition does not support Managed Active Directory Windows Authentication. No option group configuration is required for SQL Server with AD authentication — the Domain and DomainIAMRoleName CFT properties are sufficient.
 RDS domain join via the Domain CFT property is asynchronous. CloudFormation reports CREATE_COMPLETE when
 the RDS instance reaches available status, which can occur before the domain join completes.
 Invoke-ValidateDeployment for the rds phase must poll DescribeDBInstances.DomainMemberships until the
 status is joined, not just check it once immediately after the stack completes.
+The configure-managed-member phase is responsible for provisioning the HelloWorld database and the pbs user permissions on the RDS SQL Server. The configure-managed-member instance script retrieves the RDS master user credentials (username and password) from Secrets Manager and connects to the RDS endpoint using SQL Server Authentication as the master user. All T-SQL scaffolding (CREATE DATABASE HelloWorld, CREATE LOGIN [PBS\<user>] FROM WINDOWS, GRANT db_datareader and db_datawriter on HelloWorld to the pbs user) is executed under this single master-user connection. Only the sqlcmd standalone client and ODBC Driver for SQL Server are installed on managed-member — no SQL Server engine. The RDS endpoint hostname is read from rds-managed-ad.instance.json (no hardcoding).
+Both scenario 1 (Windows, domain-joined device, automatic Kerberos) and scenario 2 (Mac, kinit-obtained TGT, ODBC Driver 18 Trusted_Connection=Yes) authenticate to RDS using Windows Authentication. No SQL Server Authentication login for the pbs user is provisioned — only the [PBS\<user>] Windows Auth login created in configure-managed-member is needed.
 
 SSM Run Command script execution mechanism.
 All configure-* phases use SSM Run Command with the AWS-RunPowerShellScript document to execute
@@ -198,7 +216,7 @@ host inventory.
 3 x Windows EC2 instances - 
 a domain controller for ipscminet.com. this is the AD forest root. 
 a domain controller for pbs.ipscminet.com. this is a child domain of ipscminet.com.
-1 domain member of the managed active directory service. we will install SQL here and create a helloworld database. 
+1 domain member of the managed active directory service (managed-member). Used as the SSM execution host for RDS provisioning — installs only the sqlcmd client and ODBC Driver, not a SQL Server engine. Runs T-SQL against the RDS endpoint as Local System (computer account) to create the HelloWorld database and provision the pbs user login.
 
 things to look into. 
 
