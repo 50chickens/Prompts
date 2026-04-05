@@ -4,14 +4,15 @@ for all of the library code - seperate classes into DTOs and services.
 dependency injection wiring could go into a seperate static class other than program.cs. 
 use commandlineparser for handling different launch scenarios in the console app. do not have a default behaviour. show the user the options if there are no command line parameters. 
 Core interfaces and abstractions are in the Core layer and have zero external dependencies beyond what the Core layer provides. Implementations go in Infrastructure (for lower-level plumbing) or Application (for business logic) layers.
-Use SOLID principles and extension methods where practical. DefaultApplicationBuilder pattern for DI setup. there is a good example of the pattern under C:\git\external\WebNon-WebHostingExamples - specifically default application builder. C:\git\external\WebNon-WebHostingExamples\Metalhead.Examples.Hosting.CAB.ConsoleApp. do not use environment variables to inject runtime variables to determine application behaviour. 
+Use SOLID principles and extension methods where practical. DefaultApplicationBuilder pattern for DI setup. there is a good example of the pattern under C:\git\external\WebNon-WebHostingExamples - specifically default application builder. C:\git\external\WebNon-WebHostingExamples\Metalhead.Examples.Hosting.CAB.ConsoleApp. note this project uses serilog not nlog. ignore serilog. you should definately use nlog only (using the established ipscm libraries for nlog).
 
 Services use constructor injection for all dependencies. No service locators.
+Do not call command line tools in c# code unless specifically mentioned in the application requirements documents. 
 Logging uses ILog<T> injected via constructor. Never use LogManager or static logger instances.
 Classes should have a single concern and only a primary code path. If a class has more than concern or more than one primary code path consider it for refacting into two classes. 
 Each public class has one primary code path. If a class has multiple concerns, split it into separate classes before adding more logic.
 Do not create dynamic types or records for any reason at any time. prefer c# native types - eg int over any native types - eg uint.
-Use file-scoped namespaces.
+Use file-scoped namespaces. Always use program.main() style program.cs. do not use global usings.
 Use interfaces in Core layer. Implementations in Infrastructure or Application layers. Core has zero external dependencies.
 Use DefaultApplicationBuilder pattern for DI setup. Register services in logical order: logging first, then infrastructure, then application services.
 Keep classes single concern. Use the service pattern. Use constructor injection for dependencies. 
@@ -42,12 +43,17 @@ Use extension methods for service registration. eg .AddConsoleApp
 ## Patterns/practises to avoid.
 Do not create Null* fallback implementations (NullService, NullFm3RealtimeService, etc). These hide missing required dependencies and mask failures. If a dependency is required, fail fast — don't silently no-op.
 Do not write inline NullLog/NoOpLogger classes in production code or test files. Use the proper logging infrastructure (Ipscm.Library.Logging + LogManager.GetLogger<T>()). Fake loggers hide real issues and create dead code.
-Do not use environment variables to inject test configuration (ports, connection strings, etc). Put required config in private const or private fields initialised in [OneTimeSetUp]. Tests should run or fail deterministically — not silently skip based on environment state.
+Do not use environment variables to inject runtime variables to determine application or test behaviour. The only exception for this is where libraries explicity use environment variables for their configuration (eg GITHUB_API_KEY, OPENAPI_API_KEY). Put required config in private const or private fields initialised in [OneTimeSetUp].  
+
+Tests should run or fail deterministically — not silently skip based on environment state. All tests must either run or fail. do not ignore, or skip any tests. 
 Do not mark integration tests [Explicit] or gate them on environment variable checks. Integration tests should always run and fail clearly when infrastructure is missing — that is the signal.
 Do not provide default/fallback behaviour when required startup arguments are absent. Show usage and exit. Silent fallbacks hide misconfiguration.
 
 ## helper knowledge
 Logging in tests: use Ipscm.Library.Testing (TestUtils.BuildTestConfiguration()) + Ipscm.Library.Logging (new LogBuilder(config).Build()) then LogManager.GetLogger<T>(). Never mock or stub ILog<T> with a hand-rolled NullLog — it hides log output that is useful for diagnosing test failures.
-Test configuration: all values a test needs (ports, paths, connection strings) go in private const or private fields assigned in [OneTimeSetUp]. This makes the test self-documenting and deterministic.
+Test configuration: all values a test needs (ports, paths, connection strings) go in private const or private fields assigned in [OneTimeSetUp]. This makes the test self-documenting and deterministic. Do not use environment variables to inject test configuration (ports, connection strings, etc). 
 Consolonia app service injection from tests: set a static Func<IService>? ServiceProvider property on App before the test fixture runs (in the constructor). The app calls it at startup. Do not use a fallback null-safe operator (??) on ServiceProvider — tests must set it explicitly so missing wiring is caught immediately.
 When an app has required startup arguments, enforce them at the entry point and exit with usage text. Do not silently fall back to a default mode — the fallback path is never tested and creates two code paths to maintain.
+Use the CommandLineParser nuget packages for applications that require command line options. 
+Use DI to resolve to get the service which processes that command line option - eg 
+_serviceCollection.Resolve<ServiceThatIsForThisCommandLineOption>.Execute(); the commandlinehandler.cs should only have CommandLineOptions code in it.

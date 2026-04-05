@@ -4,7 +4,7 @@ Use NUnit and NSubstitute for testing frameworks.
 use [TestCases] where possible.
 
 Create a DependencyResolverTest unit test to verify the DI container can resolve all services. make this generic so that it if we add additional dependencies that will automatically be in scope to ensure they can be resolved.
-Use GetNunitTestLoggerContext to create a _log and then use if required - eg _log.Info("testing for ....")
+Use UseNunitTestContext to create a _log and then use if required - eg _log.Info("testing for ....")
 Follow the project's own conventions first, then common C# conventions.
 Keep naming, formatting, and project structure consistent.
 Tests must use primary code paths only.

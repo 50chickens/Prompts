@@ -15,15 +15,21 @@ DOCUMENTATION_FOLDER: REPO_ROOT/docs. Except for prompt.md this is where all of 
 
 REPO_ROOT - this is the root of the source repository.
 
+LOG_ROOT - this is REPO_ROOT/logs/SOLUTION_FOLDERS. there should be 1 log folder project per solution so that each solution would write to it's own folder. 
+eg 
+
+REPO_ROOT/logs \
+    SOLUTION_FOLDER1\project1\time-stamped-log-file.txt.
+    SOLUTION_FOLDER1\project2\time-stamped-log-file.txt.
+    SOLUTION_FOLDER2\project1\time-stamped-log-file.txt.
+
 CI_FOLDER - this is REPO_ROOT/ci. It is used for the main ci.ps1 and the build-test.ps1 scripts. it is intended for scripts & config that will not be committed into source and are used for local development.
-
+DATA_ROOT - it's location is REPO_ROOT/data. this the root of where any data is stored. Folders/files here are to not be touched for any reason whatso ever. 
 SRC_FOLDER - this is the REPO_ROOT/src/ folder under REPO_ROOT. it is main source root folder. This is for dotnet solutions only. It contains a named dotnet solution. Eg. ipscm.tooling.ssis.scripts, or ipscm_library.Ssis.Deployment. it usually contains a .sln or .slnx
-
 SOLUTION_FOLDERS - SRC_FOLDER/*. these are subfolders under SRC_FOLDER and contain .csproj files referenced by .sln in the SRC_FOLDER.
-
 DEPLOYMENT_FOLDER. This is also REPO_ROOT/src but used for scenarios where we do not do any code compilation. it is the same as SRC_FOLDER but has a name specific to the task - eg fs-resize for resizing a file system.
-
 SRC_SCRIPTS_FOLDER. this is DEPLOYMENT_FOLDER/scripts. it contains the invoke-deployment.ps1.
+DOCKER_ROOT. it's location is SRC_SCRIPTS_FOLDER/docker. Only files that are required to either build the docker image, or are required when the docker container is running are stored here. See the docker.md pattern file in this folder for subfolders/structure under this folder. 
 
 note there maybe both SOLUTION_FOLDERS and DEPLOYMENT_FOLDER1 under SRC_FOLDER and each can contain multiple subfolders . eg
 
@@ -31,16 +37,17 @@ SRC_FOLDER \
     solution1.slnx.
     SOLUTION_FOLDER1\project1.csproj.
     SOLUTION_FOLDER2\project2.csproj.
-    DEPLOYMENT_FOLDER1\invoke-deployment.ps1. #for task 1. 
-    DEPLOYMENT_FOLDER2\invoke-deployment.ps1. #for task 2. 
+    DEPLOYMENT_FOLDER1\invoke-deployment.ps1. #for project1. 
+    DEPLOYMENT_FOLDER1\docker #where we need to build a container for project1.
+    DEPLOYMENT_FOLDER2\invoke-deployment.ps1. #for project2. 
+    DEPLOYMENT_FOLDER2\docker #where we need to build a container for project1.
 
 # Main Scripts.
 
 CI_SCRIPT - this is the main script that will be executed. It lives in CI_FOLDER and is called ci.ps1.
 
 BUILD_TEST_SCRIPT. This is the main script that is used to build/compile/test .net code or software locally before checking it in. It lives in CI_FOLDER and is called ci.ps1.
-
-INVOKE_DEPLOYMENT_SCRIPT - this is invoke-deployment.ps1 which is only used to run tooling or call assemblies that are created under SRC_FOLDER. it always goes into SRC_FOLDER/scripts.
+INVOKE_DEPLOYMENT_SCRIPT - this is invoke-deployment.ps1 which is only used to run tooling or call assemblies that are created under SRC_FOLDER. it always goes into SRC_FOLDER/scripts. if we need to build a docker container we should include the steps here. 
 
 # Main configuration folders.
 
