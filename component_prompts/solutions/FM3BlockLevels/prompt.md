@@ -136,11 +136,11 @@ cerate a unit test project for it so we can have some confidence that it works.
 1. one for showing the available audio devices and being able to select multiple channels audio from any of the input audio devices. 
 2. one for showing the real-time frequency spectrum from all of the selected audio devices. this should dynamically add/remove frequency spectrums if/when they are added/removed from the 1st panel.
 
-then use that library inAudioLevels.Comparison.ConsoleApp. 
+then use that library in AudioLevels.Comparison.ConsoleApp. 
 
 phase comparison_scenarios.
 
-generating the difference in frequency spectrum for two sets of data. eg the 1000hz frequency level in one sample is 10db and another .wav has the same frame as 11db. the output would be 1db. the goal here is to compare two output .wave files and generate a visualization that can show the differents in frequency spectrum at any point in the .wav file length (or for an entire file). an audio frame this sets of data could be either live audio or comparing two sets of  .wav files directly.
+Generating the difference in frequency spectrum for two sets of data. eg the 1000hz frequency level in one sample is 10db and another .wav has the same frame as 11db. the output would be 1db. the goal here is to compare two output .wave files and generate a visualization that can show the differents in frequency spectrum at any point in the .wav file length (or for an entire file). an audio frame this sets of data could be either live audio or comparing two sets of  .wav files directly.
 able to apply a normalization - eg if two audio input channels have two different gain levels - we should be able to adjust one so that we can compare levels. eg the channel 3 and channel 1 on the fm3 are ~ 18 dbfs different. 
 it should be able to overlay multiple simultaneous input audio devices and simultaneous channels on the same device. 
 
@@ -156,6 +156,40 @@ comparison 1: C:\git\internal\fm3_analysis\mp3_comparison\original\Metal Guitar 
 comparison 2: C:\git\internal\fm3_analysis\mp3_comparison\original\Metal Guitar DI.wav to C:\git\internal\fm3_analysis\mp3_comparison\scenario_2_output_copy_none\Metal Guitar DI_Output_FM3_USB_Audio_Device_ch3_20260314115359.wav
 comparison 3: C:\git\internal\fm3_analysis\mp3_comparison\scenario_1_output_copy_channel_1_to_channel_2\Metal Guitar DI_Output_FM3_USB_Audio_Device_ch3_fm3_output2_block_20260314115216.wav to C:\git\internal\fm3_analysis\mp3_comparison\scenario_2_output_copy_none\Metal Guitar DI_Output_FM3_USB_Audio_Device_ch3_20260314115359.wav
 
+Phase plan_Application_gui.
+
+write me a plan.md for a avalonia based application that has these modes:
+
+static analysis. 
+
+static analysis. 
+Send a baseline .wav file using one output audio device and then:
+Capture the return signal on multiple input audio devices (eg the fm3 has channels 1/2 which are the processed signal and 3/4 which is the dry/unprocessed signal).
+The audio data i want to create some visualizations out of are:
+
+Latency/THD/Gain levels (eg reference dbfs vs returned dbfs). This should be a rolling chart - eg updates in real time with the last N seconds, minutes of captured data etc. 
+
+Real-time analysis. 
+Send a baseline .wav file using one output audio device and then:
+Capture the return signal on multiple input audio devices (eg the fm3 has channels 1/2 which are the processed signal and 3/4 which is the dry/unprocessed signal).
+The audio data i want to create some visualizations out of are:
+a real-time chart showing:
+The dbfs levels of each of the audio sources (eg output .wav and input audio devices).
+The frequency spectrum difference between the various .wav & captured signals. 
+
+snapshot analysis. 
+Send a baseline .wav file using one output audio device and then:
+Capture the return signal on multiple input audio devices (eg the fm3 has channels 1/2 which are the processed signal and 3/4 which is the dry/unprocessed signal).
+The audio data i want to create some visualizations out of are:
+The average differences over the entirely audio track of the differences between the frequencies (by bin).
+The average differences over the entirely audio track of the volume level (by bin).
+
+Tthe goal of the last one is to understand the original goal.
+the original goal is that i have a setting that i know causes "bad sound" but i want some visualizations that i can use to see how the sound is changed between the good and bad scenarios.
+eg i can use a reference .wav and record it when the 'bad setting' is applied and also the 'good setting' is applied. then i want to compare the good & bad scenario frequency spectrum to see exactly how does teh bad setting shape the sound. 
+
+eg i have a standard EQ graph/chart that shows me that the frequency difference between 1khz and 4 khz starts at -2dfbs at 1khz and drops to -6dbfs at 4khz. 
+
 Phase Application_gui.
 
 build a more complex gui application using avalonia for visualizing the audio metrics. 
@@ -163,7 +197,6 @@ include gui ui equivalents of the command line options that are available in the
 
 when they click start - create progress bar type UI elements in the console app which contains the following 3 running values: latency, dbfs, RMS and a THD. these should be updating at a configurable value per second (default to 20).
 add a stop button. 
-
 
 
 github repos for existing patterns:
