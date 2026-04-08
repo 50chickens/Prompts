@@ -24,30 +24,40 @@ REPO_ROOT/logs \
     SOLUTION_FOLDER2\project1\time-stamped-log-file.txt.
 
 CI_FOLDER - this is REPO_ROOT/ci. It is used for the main ci.ps1 and the build-test.ps1 scripts. it is intended for scripts & config that will not be committed into source and are used for local development.
-DATA_ROOT - it's location is REPO_ROOT/data. this the root of where any data is stored. Folders/files here are to not be touched for any reason whatso ever. 
-SRC_FOLDER - this is the REPO_ROOT/src/ folder under REPO_ROOT. it is main source root folder. This is for dotnet solutions only. It contains a named dotnet solution. Eg. ipscm.tooling.ssis.scripts, or ipscm_library.Ssis.Deployment. it usually contains a .sln or .slnx
+DATA_ROOT - it's location is REPO_ROOT/data. this the root of where any data is stored. Folders/files here are to not be touched for any reason whatsoever. 
+SRC_FOLDER - it's location is REPO_ROOT/src/. it is main source root folder. This is for dotnet solutions only. It contains a named dotnet solution. Eg. ipscm.tooling.ssis.scripts, or ipscm_library.Ssis.Deployment. it usually contains a .sln or .slnx
+DOCKER_DATA_FOLDER. it's location is DATA_ROOT/docker/SRC_FOLDER. this the root of where any docker volume for the SRC_FOLDER is. Folders/files here are to not be touched for any reason whatsoever. folders/files DOCKER_DATA_FOLDER are meant to be volume mounted at contained start time and contain persistant data. eg databases that are created as part of docker image startup (eg open-webui), or application storage. 
 SOLUTION_FOLDERS - SRC_FOLDER/*. these are subfolders under SRC_FOLDER and contain .csproj files referenced by .sln in the SRC_FOLDER.
 DEPLOYMENT_FOLDER. This is also REPO_ROOT/src but used for scenarios where we do not do any code compilation. it is the same as SRC_FOLDER but has a name specific to the task - eg fs-resize for resizing a file system.
-SRC_SCRIPTS_FOLDER. this is DEPLOYMENT_FOLDER/scripts. it contains the invoke-deployment.ps1.
-DOCKER_ROOT. it's location is SRC_SCRIPTS_FOLDER/docker. Only files that are required to either build the docker image, or are required when the docker container is running are stored here. See the docker.md pattern file in this folder for subfolders/structure under this folder. 
+SRC_SCRIPTS_FOLDER. this is DEPLOYMENT_FOLDER/scripts. it contains the invoke-*.ps1. there can be multiple. eg SRC_SCRIPTS_FOLDER1 & SRC_SCRIPTS_FOLDER2.
+DOCKER_ROOT. it's location is SRC_SCRIPTS_FOLDER*/docker. Only files that are required to either build the docker image, or are required when the docker container is running are stored here. See the docker.md pattern file in this folder for subfolders/structure under this folder. 
+DOCKER_CONTEXT_ROOT. it's location is DOCKER_ROOT/context. These are files that are required to be avalable at container image build time, or container runtime. the structure of this folder should be relative to the / of the filesystem in the container - eg there is a /opt and & /etc folder. 
+DOCKER_BUILD_CONTEXT_ROOT. it's location is DOCKER_CONTEXT_ROOT/build. files in here should be removed in the last step of the Dockerfile. they should not be included in the final image. this folder is included in the DOCKER_CONTEXT_ROOT and so goes into /build but is removed at the end of the docker build.
+DOCKER_VOLUME_MOUNT_ROOT. it's location is DOCKER_CONTEXT_ROOT/volume_mount. this is a list of folders or files that should be mounted at container start time but should not be included in the container image. eg credentials, or secrets, or certificates. files should have a 1:1 mapping in the docker-compose.yaml file. only directories should outside of DOCKER_ROOT. 
 
-note there maybe both SOLUTION_FOLDERS and DEPLOYMENT_FOLDER1 under SRC_FOLDER and each can contain multiple subfolders . eg
+examples in the docker-compose.yaml are: 
+./volume_mounts/etc/env.conf:/etc/env.conf (for files)
+../../../../data/docker/open-webui:/app/backend/data (for directories). 
 
-SRC_FOLDER \
+Note there could be more than one SOLUTION_FOLDER and DEPLOYMENT_FOLDER under SRC_FOLDER and each of those can contain multiple subfolders . eg
+
+SRC_FOLDER /
     solution1.slnx.
-    SOLUTION_FOLDER1\project1.csproj.
-    SOLUTION_FOLDER2\project2.csproj.
-    DEPLOYMENT_FOLDER1\invoke-deployment.ps1. #for project1. 
-    DEPLOYMENT_FOLDER1\docker #where we need to build a container for project1.
-    DEPLOYMENT_FOLDER2\invoke-deployment.ps1. #for project2. 
-    DEPLOYMENT_FOLDER2\docker #where we need to build a container for project1.
+    SOLUTION_FOLDER1/project1.csproj.
+    SOLUTION_FOLDER2/project2.csproj.
+    SRC_SCRIPTS_FOLDER1/invoke-*.ps1. #for project1. 
+    SRC_SCRIPTS_FOLDER1/docker #where we need to build a container for project1.
+    SRC_SCRIPTS_FOLDER1/docker/context #files required for creating the container.
+    SRC_SCRIPTS_FOLDER1/docker/context/build #temporary files used for configuring the container image - eg adding packages, configuring services. this folder should be removed prior to the Dockerfile completing.
+    SRC_SCRIPTS_FOLDER2/invoke-*.ps1. #for project2. 
+    SRC_SCRIPTS_FOLDER2/docker #where we need to build a container for project1.
 
 # Main Scripts.
 
 CI_SCRIPT - this is the main script that will be executed. It lives in CI_FOLDER and is called ci.ps1.
 
 BUILD_TEST_SCRIPT. This is the main script that is used to build/compile/test .net code or software locally before checking it in. It lives in CI_FOLDER and is called ci.ps1.
-INVOKE_DEPLOYMENT_SCRIPT - this is invoke-deployment.ps1 which is only used to run tooling or call assemblies that are created under SRC_FOLDER. it always goes into SRC_FOLDER/scripts. if we need to build a docker container we should include the steps here. 
+INVOKE_DEPLOYMENT_SCRIPT - this is invoke-*.ps1 which is only used to run tooling or call assemblies that are created under SRC_FOLDER. it always goes into SRC_FOLDER/scripts. if we need to build a docker container we should include the steps here. 
 
 # Main configuration folders.
 
@@ -63,7 +73,7 @@ eg -
 fs-resize.json (when no environment is specified).
 fs-resize.local.json (when environment is defined as .local as specified in ci.ps1).
 
-Configuration specific to where we need to seperate scripts that run on a host versus scripts that are run on a remote host. This is default pattern for scripts and assets for invoke-deployment.ps1.
+Configuration specific to where we need to seperate scripts that run on a host versus scripts that are run on a remote host. This is default pattern for scripts and assets for invoke-*.ps1.
 
 DEPLOYMENT_SCRIPTS. SRC_SCRIPTS_FOLDER\scripts.
 DEPLOYMENT_ASSETS_FOLDER. DEPLOYMENT_SCRIPTS/assets.
@@ -105,51 +115,87 @@ AWS_INCLUDES_FOLDER. goes under COMMON_INCLUDES\aws. There are some scripts that
 ## Tokens
 
 ```
-REPO_ROOT                = C:\git\LinkedIn
+REPO_ROOT                = C:\git\Repo1
 CI_FOLDER                = REPO_ROOT\ci
 CI_CONFIG_FOLDER         = CI_FOLDER\configs
-DEPLOYMENT_FOLDER        = REPO_ROOT\src\LinkedIn
-DEPLOYMENT_INCLUDES      = DEPLOYMENT_FOLDER\includes
-DEPLOYMENT_CONFIG_FOLDER = DEPLOYMENT_FOLDER\configs
-TOOLS_FOLDER             = DEPLOYMENT_FOLDER\tools\tools
+SRC_SCRIPTS_FOLDER       = REPO_ROOT\src
+SRC_SCRIPTS_FOLDER1      = REPO_ROOT\src\Project1
+SRC_SCRIPTS_FOLDER2      = REPO_ROOT\src\Project2
+DEPLOYMENT_INCLUDES      = SRC_SCRIPTS_FOLDER*\includes
+DEPLOYMENT_CONFIG_FOLDER = SRC_SCRIPTS_FOLDER*\configs
+TOOLS_FOLDER             = SRC_SCRIPTS_FOLDER*\tools\tools
 DATA_FOLDER              = REPO_ROOT\data
+DOCKER_ROOT              = SRC_SCRIPTS_FOLDER*\docker
+DOCKER_DATA_FOLDER       = DATA_FOLDER\docker\Project*
 FILES_FOLDER             = DATA_FOLDER\files
-ASSIGNMENTS_FOLDER       = DATA_FOLDER\LinkedIn\assignments
+APPLICATION_DATA_FOLDER  = DATA_FOLDER\Project*\*. 
 ```
 
 ## REPO_ROOT layout
 
 ```
 REPO_ROOT\
+├── data\                                                (DATA_FOLDER)
+    ├───docker                                           
+│       ├───ELRChatbot (APPLICATION_DATA_FOLDER)         (DOCKER_DATA_FOLDER1 - for ELRChatbot)
+│       ├───LinkedIn   (APPLICATION_DATA_FOLDER)         (DOCKER_DATA_FOLDER2 - for LinkedIn)
 ├── ci\                                                  (CI_FOLDER)
 │   ├── ci.ps1
 │   ├── build-test.ps1
 │   └── configs\                                         (CI_CONFIG_FOLDER)
 │       └── linkedin.json
-├── src\
-│   └── LinkedIn\                                        (DEPLOYMENT_FOLDER)
-│       ├── invoke-deployment.ps1
-│       ├── configs\                                     (DEPLOYMENT_CONFIG_FOLDER)
-│       │   └── linkedin.json
-│       ├── includes\                                    (DEPLOYMENT_INCLUDES)
-│       │   ├── logging.ps1
-│       │   ├── configuration.ps1
-│       │   ├── assignment.ps1
-│       │   └── research.ps1
-│       └── tools\                                       (TOOLS_FOLDER)
-│           └── tools\
-│               └── chatgpt.exe
-├── data\                                                (DATA_FOLDER)
-│   ├── files\                                           (FILES_FOLDER)
-│   │   ├── background.md
-│   │   └── identify_candidate_constraints-template.md
-│   └── LinkedIn\
-│       └── assignments\                                 (ASSIGNMENTS_FOLDER)
-│           └── <AssignmentName>\
-│               ├── chatgpt\
-│               ├── LinkedIn\
-│               └── prompt\
-│                   └── identify_candidate_constraints.md
+└───src                                                  (SRC_FOLDER)                                             
+    ├───ELRChatBot                                       
+    │   ├───ELRChatBot.slnx                              (main solution file.)                                           
+    │   ├───ELRChatBot.Api                                       
+    │   ├───ELRChatBot.Library.Foo.                                       
+    │   │
+    │   └───scripts                                      (SRC_SCRIPTS_FOLDER1 - for ELRChatbot)
+    │       │   invoke-application-tests.ps1
+    │       │   invoke-deployment-test.ps1
+    │       │   invoke-deployment.ps1
+    │       │   invoke-docker.ps1
+    │       │
+    │       ├───configs
+    │       │       elrchatbot.local.json
+    │       │
+    │       └───docker                                  (DOCKER_ROOT)
+    │           │   docker-compose.yml
+    │           │   Dockerfile
+    │           │   readme.md
+    │           │
+    │           ├───context                             (DOCKER_CONTEXT_ROOT)
+    │           │   │   readme.md
+    │           │   │
+    │           │   ├───build
+    │           │   │       install-powershell.sh
+    │           │   │
+    │           │   ├───etc
+    │           │   │       supervisord.conf
+    │           │   │
+    │           │   └───opt
+    │           │           readme.md
+    │           │           startup.ps1
+    │           │
+    │           └───volume_mounts                       (DOCKER_CONTEXT_ROOT)
+    │               │   env.conf.example
+    │               │
+    │               └───etc
+    │                       env.conf
+    │
+│   └── LinkedIn\                                        (SRC_SCRIPTS_FOLDER2 - for LinkedIn)
+    │   └───scripts                                      (SRC_SCRIPTS_FOLDER1 - for ELRChatbot)
+    │       ├── invoke-*.ps1
+    │       ├── configs\                                     (DEPLOYMENT_CONFIG_FOLDER)
+    │       │   └── linkedin.json
+    │       ├── includes\                                    (DEPLOYMENT_INCLUDES)
+    │       │   ├── logging.ps1
+    │       │   ├── configuration.ps1
+    │       │   ├── assignment.ps1
+    │       │   └── research.ps1
+    │       └── tools\                                       (TOOLS_FOLDER)
+    │           └── tools\
+    │               └── chatgpt.exe
 └── documentation\
     ├── plans\
     │   ├── plan.md
@@ -157,10 +203,3 @@ REPO_ROOT\
     └── prompts\
         └── prompt.md
 ```
-
-
-##insert example here.
-
-this is an example directory tree for a set of scripts where we - use AWS and connect to a remote host.
-
-##insert example here.

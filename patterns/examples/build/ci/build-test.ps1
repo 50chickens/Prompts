@@ -47,7 +47,7 @@ function Get-BuildConfigurations {
 }
 
 function Invoke-ValidateProjectReferences($configuration) {
-    Write-Host "Validating project references..."
+    Write-Log "Validating project references..."
     $solutionFile = $configuration.SolutionFile
     $solutionContent = Get-Content -Path $solutionFile -Raw
     $missingProjects = @()
@@ -59,14 +59,14 @@ function Invoke-ValidateProjectReferences($configuration) {
     }
     
     if ($missingProjects.Count -gt 0) {
-        Write-Host "ERROR: Missing projects in solution:"
-        $missingProjects | ForEach-Object { Write-Host "  $_" }
+        Write-Log "ERROR: Missing projects in solution:"
+        $missingProjects | ForEach-Object { Write-Log "  $_" }
         throw "Validation failed"
     }
 }
 
 function Invoke-RestoreDependencies($configuration) {
-    Write-Host "Restoring dependencies..."
+    Write-Log "Restoring dependencies..."
     $solutionFile = $configuration.SolutionFile
     $restoreArgs = @($solutionFile)
     
@@ -84,7 +84,7 @@ function Invoke-RestoreDependencies($configuration) {
 }
 
 function Invoke-CodeFormatCheck($configuration) {
-    Write-Host "Checking code format..."
+    Write-Log "Checking code format..."
     $solutionFile = $configuration.SolutionFile
     dotnet format $solutionFile --verify-no-changes
     
@@ -95,7 +95,7 @@ function Invoke-CodeFormatCheck($configuration) {
 }
 
 function Invoke-BuildSolution($configuration) {
-    Write-Host "Building solution..."
+    Write-Log "Building solution..."
     $solutionFile = $configuration.SolutionFile
     $buildArgs = @($solutionFile, "--verbosity", $configuration.build.verbosity, "--nologo")
     
@@ -113,7 +113,7 @@ function Invoke-BuildSolution($configuration) {
 }
 
 function Invoke-RunTests($configuration) {
-    Write-Host "Running tests..."
+    Write-Log "Running tests..."
     $solutionFile = $configuration.SolutionFile
     $testArgs = @($solutionFile, "--verbosity", $configuration.test.verbosity)
     if ($configuration.test.excludeCategories -and $configuration.test.excludeCategories.Count -gt 0) {
@@ -130,10 +130,10 @@ function Invoke-RunTests($configuration) {
 
 function Invoke-NugetPackage($configuration) {
     if (!(Test-Path -Path build.xml)) {
-        Write-Host "Skipping NuGet package creation (build.xml not found)"
+        Write-Log "Skipping NuGet package creation (build.xml not found)"
         return
     }
-    Write-Host "Creating NuGet packages..."
+    Write-Log "Creating NuGet packages..."
     $buildconfiguration = Get-BuildConfiguration 
     & dotnet build build.xml -t:CreateNugetPackages -p:Configuration=$buildconfiguration -p:PackageTags=$buildconfiguration -p:BuildNumber=$script:BuildNumber
     
@@ -141,16 +141,16 @@ function Invoke-NugetPackage($configuration) {
         Write-Error "ERROR: dotnet nuget pack failed. Exit code $LASTEXITCODE."
         exit $LASTEXITCODE
     }
-    Write-Host "NuGet packages created successfully with tag: $buildconfiguration"
+    Write-Log "NuGet packages created successfully with tag: $buildconfiguration"
 }
 
 function Invoke-NugetPush($configuration) {
-    Write-Host "Pushing NuGet packages..."
+    Write-Log "Pushing NuGet packages..."
     $nupkgOutFolderPath = Join-Path (Get-Location) $nupkgOutFolder
     $packages = Get-ChildItem -Path $nupkgOutFolderPath -Filter "*.nupkg" -ErrorAction SilentlyContinue
     
     foreach ($pkg in $packages) {
-        Write-Host "Pushing $($pkg.Name)..."
+        Write-Log "Pushing $($pkg.Name)..."
         & dotnet nuget push "$($pkg.FullName)" --source $NugetSourceName
         
         if ($LASTEXITCODE -ne 0) {
@@ -158,7 +158,7 @@ function Invoke-NugetPush($configuration) {
             exit $LASTEXITCODE
         }
     }
-    Write-Host "NuGet packages pushed successfully."
+    Write-Log "NuGet packages pushed successfully."
 }
 
 function Invoke-RunBuild($configuration) {
@@ -183,12 +183,12 @@ function Invoke-RunTestPhase($configuration)
 Invoke-PreflightCheck
 $buildConfigurations = Get-BuildConfigurations -ConfigurationFolder $ConfigurationFolder
 
-Write-Host "=== Build & Test ==="
+Write-Log "=== Build & Test ==="
 
 $buildConfigurations |? { $_.enabled } |%{
     Push-Location (Join-Path (Get-Location) $_.solutionFolder)
     Invoke-RunBuild $_
     Pop-Location
 }
-Write-Host "=== Build & Test Complete ===" -ForegroundColor Cyan
+Write-Log "=== Build & Test Complete ===" -ForegroundColor Cyan
 exit 0

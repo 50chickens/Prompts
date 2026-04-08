@@ -1,1 +1,0 @@
-go and add to C:\git\internal\Prompts\component_prompts\solutions\ELRChatBot\prompt.md - don't update any existing content - i only want you to append. add phases for delivery of the end to end system that would make the that the ELR recruitment staff do more efficient. 
