@@ -2,6 +2,7 @@
 ## C# Unit & Integration Testing guidelines.
 Use NUnit and NSubstitute for testing frameworks. 
 use [TestCases] where possible.
+Don't use the word mock/fake/test/dummy in the code anywhere - even in unit tests. for places where we need to use a mock there should be an abstraction where we create a minimimal implementatio of the abstraction in the unit test and use this instead. see TestUtils.BuildTestConfiguration() for an example. we don't create a full configuration class - we have a minimal implementation of the interface in the unit test and use this instead.
 
 Create a DependencyResolverTest unit test to verify the DI container can resolve all services. make this generic so that it if we add additional dependencies that will automatically be in scope to ensure they can be resolved.
 Use UseNunitTestContext to create a _log and then use if required - eg _log.Info("testing for ....")

@@ -9,7 +9,7 @@ Set-Location $PSScriptRoot
 $includesDir = Join-Path $PSScriptRoot "includes"
 
 get-childitem -Path $includesDir -Filter '*.ps1' |%{
-    write-host "Sourcing $($_.Name)"
+    Write-Log "Sourcing $($_.Name)"
     . $_.FullName 
 }
 

@@ -44,7 +44,7 @@ Use extension methods for service registration. eg .AddConsoleApp
 Do not create Null* fallback implementations (NullService, NullFm3RealtimeService, etc). These hide missing required dependencies and mask failures. If a dependency is required, fail fast — don't silently no-op.
 Do not write inline NullLog/NoOpLogger classes in production code or test files. Use the proper logging infrastructure (Ipscm.Library.Logging + LogManager.GetLogger<T>()). Fake loggers hide real issues and create dead code.
 Do not use environment variables to inject runtime variables to determine application or test behaviour. The only exception for this is where libraries explicity use environment variables for their configuration (eg GITHUB_API_KEY, OPENAPI_API_KEY). Put required config in private const or private fields initialised in [OneTimeSetUp].  
-
+Don't use the word mock/fake/test/dummy in the code anywhere - even in unit tests. 
 Tests should run or fail deterministically — not silently skip based on environment state. All tests must either run or fail. do not ignore, or skip any tests. 
 Do not mark integration tests [Explicit] or gate them on environment variable checks. Integration tests should always run and fail clearly when infrastructure is missing — that is the signal.
 Do not provide default/fallback behaviour when required startup arguments are absent. Show usage and exit. Silent fallbacks hide misconfiguration.
