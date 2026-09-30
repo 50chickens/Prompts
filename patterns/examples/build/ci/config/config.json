@@ -1,0 +1,13 @@
+{
+  "solutionFolder": "../src",
+  "solutionFile": "Example.sln",
+  "buildFile": "build.xml",
+  "nupkgOutFolder": "nupkgOut",
+  "build": {
+    "configuration": "Release",
+    "verbosity": "minimal"
+  },
+  "test": {
+    "verbosity": "minimal"
+  }
+}

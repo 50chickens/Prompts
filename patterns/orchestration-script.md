@@ -57,8 +57,7 @@ $configuration | Add-Member -NotePropertyName 'tempDir'              -NoteProper
 $configuration | Add-Member -NotePropertyName 'cacheDir'             -NotePropertyValue $script:cacheDir
 
 
-We should not need the $configurationFolder variable except in the Get-Configuration method. it should return a single $configuration from the $configurationFolder & configurationFileName
-$configuration | Add-Member -NotePropertyName 'configurationFolder'  -NotePropertyValue $ConfigurationFolder
+Each script independently loads its own configuration in the Get-Configuration method. Do not pass a $configurationFolder or a configuration file name between scripts - the config location is resolved by Get-Configuration and returned on the single $configuration object.
 
 If a variable value is used in a function then that is where we should collect the values in that function - not in the Add-AdditionalConfiguration function and set it globally on the $configuration object.  eg. 
 
