@@ -1,34 +1,47 @@
-param(
-    [string]$ConfigurationFolder, # Folder containing configuration files
-    [string]$ConfigurationfileName # Configuration file name
-)
-
 $ErrorActionPreference = 'Stop'
+$VerbosePreference = 'SilentlyContinue'
+$PSNativeCommandUseErrorActionPreference = $true
 Set-Location $PSScriptRoot
+$baseName = (Get-Item $PSScriptRoot).Name
 
-$includesDir = Join-Path $PSScriptRoot "includes"
-
-get-childitem -Path $includesDir -Filter '*.ps1' |%{
-    Write-Log "Sourcing $($_.Name)"
-    . $_.FullName 
+Get-ChildItem -Path "includes" -Filter '*.ps1' -Recurse |% {
+    Write-Verbose "Dot-sourcing $($_.FullName)"
+    . $_.FullName
 }
 
-function Invoke-PreflightCheck {
-    if (-not $ConfigurationFolder) {
-        Write-Error "ConfigurationFolder parameter is required"
-        exit 1
-    }
-
-    if (-not (Test-Path $ConfigurationFolder)) {
-        Write-Error "ERROR: Configuration folder not found: $ConfigurationFolder"
-        exit 1
-    }
-}
-
-$configuration = Get-Configuration -ConfigurationFolder $ConfigurationFolder -configurationFileName $configurationfileName
-Invoke-Function1($configuration)
+function Get-Configuration
 {
-    # Placeholder for the actual function implementation
+    # $PSScriptRoot is permitted in Get-Configuration only; it is banned in every other function in this script.
+    $configFileName = 'config.json'
+    $configDir = "$PSScriptRoot/config"
+    $configPath = "$configDir/$configFileName"
+
+    $configuration = Get-Content $configPath | ConvertFrom-Json
+    $configuration | Add-Member -NotePropertyName 'ConfigPath' -NotePropertyValue $configPath -Force
+
+    return $configuration
 }
 
-Invoke-Function1 -Configuration $configuration
+function Add-RuntimeConfiguration($configuration)
+{
+    return $configuration
+}
+
+function Invoke-PreflightCheck($configuration)
+{
+    if (-not (Test-Path $configuration.ConfigPath))
+    {
+        throw "Config not found: $($configuration.ConfigPath)"
+    }
+}
+
+function Invoke-Deployment($configuration)
+{
+    $deploymentTarget = $configuration.deploymentTarget
+    Write-Log "Deploying to $deploymentTarget"
+}
+
+$configuration = Get-Configuration
+$configuration = Add-RuntimeConfiguration $configuration
+Invoke-PreflightCheck $configuration
+Invoke-Deployment $configuration
