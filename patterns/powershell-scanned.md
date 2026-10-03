@@ -48,6 +48,12 @@ description: Write high-quality, readable PowerShell scripts following these con
 | More than usage or appearance of $PSScriptRoot in the entire script. | In the script header we use `Set-Location $PSScriptRoot`. Any further usage is redundant. Relative paths can be used to resolve any folder locations after this. | use "..\somefolder\somefile.json" not (Get-Item "$PSScriptRoot\..\somefolder\somefile.json").FullName. 
 ### Parameters
 
+### variable construction/object interation.
+
+| Banned | Reason | Use instead |
+$scripts = @($configuration.BuildTestStageScript, $configuration.ApplicationTestsStageScript) | recombining objects onto a new object where they already exist on another object. 
+
+
 Runtime flags that select behaviour may be passed (e.g. `-resetadminpassword`). Configuration must not be passed between scripts.
 
 | Banned | Reason | Use instead |
@@ -158,7 +164,9 @@ The `config` folder consumed by things under `src` is checked in; `ci` configura
 - Pass `$configuration` untyped.
 - Do not put script-level preference values (e.g. `VerbosePreference`) into `$configuration`.
 - Configuration JSON holds relative paths; do not resolve them with `Resolve-Path`, `Join-Path` or `$PSScriptRoot`.
-- When creating feature flags prefer SkipSomeOperation so that if the variable is missing - eg $configuration.SkipSomeOperation is missing it results to false and the operation would still run. We can then avoid adding unneccessary boilerplate to either the .json file or get-configuration. 
+- When creating feature flags prefer SkipSomeOperation so that if the variable is missing - eg $configuration.SkipSomeOperation is missing it results to false and the operation would still run. We can then avoid adding unneccessary boilerplate to either the .json file or get-configuration.
+- If you notice that we have properties with similar purposes - eg folders but they are all individual property names evaluate if it's better to use a list of objects and iterate through those. prime examples are: $configuration.scriptfolder1, $configuration.scriptfolder2. This anti pattern should be refactored to a list with an enabled property. eg "scriptsToExecute": [{"enabled": true,"filePath": ".\\some-script.ps1"}]. this saves brittleness in the script if new requirements are added. 
+
 ### Folder Path Configuration
 
 ```powershell
@@ -233,6 +241,27 @@ function Invoke-UpdateAutoscaleGroup($configuration)
     $launchTemplateVersion = Invoke-CreateLaunchTemplateVersion $configuration
     Invoke-UpdateAutoscaleGroupLaunchTemplate $autoscaleGroup $launchTemplateVersion
 }
+```
+
+### variable access guidelines
+
+If a list of objects to iterate through is required put them into a list of objects with an enabled property - eg 
+
+```powershell
+
+"scriptsToExecute": [{
+    "enabled": true,
+    "filePath": ".\\some-script.ps1"
+  }]
+
+  then use 
+  $scriptsToExecute = $configuration.ScriptsToExecute
+  $scriptsToExecute |? { $_.Enabled} | %{
+    #execute script here. 
+  }
+
+  do not do - $scripts = @($configuration.BuildTestStageScript, $configuration.ApplicationTestsStageScript). this is a needless & wasteful round trip of objects and creates a fragile json structure. 
+  
 ```
 
 ### `exit` vs `return` in functions
