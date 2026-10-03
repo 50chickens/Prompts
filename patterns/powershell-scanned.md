@@ -45,7 +45,7 @@ description: Write high-quality, readable PowerShell scripts following these con
 | Inline scripts/executables | Place scripts in `assets` or `static` folders and execute them directly |
 | `Out-Null` | Do not use; pipeline form is default on Windows; or `-inotmatch` (explicit) |
 | `Set-Location` | Path risk; scripts must not change working directory; `Set-Location $PSScriptRoot` and adjust the `..\Init` depth. |
-
+| More than usage or appearance of $PSScriptRoot in the entire script. | In the script header we use `Set-Location $PSScriptRoot`. Any further usage is redundant. Relative paths can be used to resolve any folder locations after this. | use "..\somefolder\somefile.json" not (Get-Item "$PSScriptRoot\..\somefolder\somefile.json").FullName. 
 ### Parameters
 
 Runtime flags that select behaviour may be passed (e.g. `-resetadminpassword`). Configuration must not be passed between scripts.
@@ -54,7 +54,7 @@ Runtime flags that select behaviour may be passed (e.g. `-resetadminpassword`). 
 |--------|---------|-------------|
 | `param()` used to pass configuration from one script to another | Couples the callee to the caller, which must know the callee's config layout | `Get-Configuration` - each script independently loads its own configuration |
 | `-ConfigurationFolder` (or any config path) as a parameter | Where the config lives is a concern of the script, not the caller | `Get-Configuration`, which resolves its own config path |
-
+| Add-Member -NotePropertyName 'ApplicationTestsScript' -NotePropertyValue (Some-CalculatedValue $someVariable) -Force. | Calculated variables are another type of runtime variable and do not go into Get-Configuration. | Only pass $someValue to Add-Member. eg $configuration | Add-Member -Value $someValue. 
 Accept only the parameters a script expects - for example a delete-stack script takes 0 or 1. Do not accept extra script-level parameters.
 
 ### .NET classes
@@ -150,12 +150,15 @@ The `config` folder consumed by things under `src` is checked in; `ci` configura
 
 ### Configuration sources
 
-`$configuration` values come from `Get-Configuration` (static values, similar to constants) and `Add-RuntimeConfiguration` (values knowable only at runtime). Nothing else may add to `$configuration`.
 
+- Variables that are constants in the sense that they do not change for the entire period of the script execution, but are known before start script time. But these are variables the user is likely to change from run to run - eg Verbosity leve.  These go into Get-Configuration.
+- Variables that are unlikely to change from run to run - eg dotnet solution names. These go into a json file that is loaded by: $configuration = Get-Content $configPath | ConvertFrom-Json. 
+- Variables that are unknown at script start time - eg process id's, user profile folders. These go into Add-RuntimeConfiguration. If there are more than one category of runtime variables - 
+`$configuration` values come from `Get-Configuration` (static values, similar to constants) and `Add-RuntimeConfiguration` (values knowable only at runtime). Nothing else may add to `$configuration`.
 - Pass `$configuration` untyped.
 - Do not put script-level preference values (e.g. `VerbosePreference`) into `$configuration`.
 - Configuration JSON holds relative paths; do not resolve them with `Resolve-Path`, `Join-Path` or `$PSScriptRoot`.
-
+- When creating feature flags prefer SkipSomeOperation so that if the variable is missing - eg $configuration.SkipSomeOperation is missing it results to false and the operation would still run. We can then avoid adding unneccessary boilerplate to either the .json file or get-configuration. 
 ### Folder Path Configuration
 
 ```powershell
