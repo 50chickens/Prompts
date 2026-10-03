@@ -1,4 +1,0 @@
-phase fm3-connection_test_tool.
-
-the fm3 is definately connected and connected on COM7. 
-Write a seperate console app called AudioLevels.ConsoleApp.Fm3ConnectionTest. add an appsettings.json with only 1 property - FM3ComPort: COM7. it should only return "FM3: Connected" response or an exception if not connected. Can you query the windows device manager for the FM3 Communications Port device and then if present try & send a basic hello world syex command (maybe get version or info or cpu usage - some basic value which validates the connection). include this workflow in build-test.ps1. use the DI/Service/DefaultApplicationBuilder patterns. don't include any command line options. it should read the FM3ComPort setting and pass that to the constructor of the Fm3ConnectionTestService. but reuse as much existing library as possible. 
