@@ -1,1 +1,0 @@
-Use this pattern from Ipscm.ConsoleApp.ExampleApp for how to handle command line options. we should be using the CommandLine nuget package and using a CommandLineHandler with the injected services 
