@@ -1,4 +1,4 @@
-## c# Coding patterns.
+c# Coding patterns.
 
 use the default application builder pattern in c#. program.cs should be as small as possible.
 for all of the library code - seperate classes into DTOs and services.
@@ -28,19 +28,23 @@ Classes should have a single concern and only a primary code path.
 If a class has more than concern or more than one primary code path consider it for refactoring into two classes.
 Each public class has one primary code path. If a class has multiple concerns, split it into separate classes before adding more logic.
 
-Do not create dynamic types or records for any reason at any time. prefer c# native types - eg int over any native types - eg uint.
+Do not create dynamic types or records for any reason at any time.
+prefer c# native types - eg int over any native types - eg uint.
 
-Use file-scoped namespaces. Always use program.main() style program.cs. do not use global usings.
+Use file-scoped namespaces.
+Always use program.main() style program.cs.
+do not use global usings.
 
-### Configuration extraction in service constructors
 
-Read configuration values into private readonly fields in the constructor rather than calling
-configuration["Key"] inside methods.
+Configuration extraction in service constructors
+
+Read configuration values into private readonly fields in the constructor rather than calling configuration["Key"] inside methods.
 
 This makes dependencies explicit, avoids repeated lookups, and makes the class easier to test.
 
-```csharp
+
 // CORRECT
+
 public class MyService(IConfiguration configuration, IHttpClientFactory httpClientFactory)
 {
     private readonly string _host
@@ -59,10 +63,10 @@ public class MyService(IConfiguration configuration, IHttpClientFactory httpClie
         // uses _host and _port, not configuration
     }
 }
-```
 
-```csharp
+
 // WRONG - reads config repeatedly inside methods
+
 public class MyService(IConfiguration configuration)
 {
     public async Task DoWorkAsync()
@@ -70,25 +74,25 @@ public class MyService(IConfiguration configuration)
         var host = configuration["Service:Host"];
     }
 }
-```
 
-### Autofac with ASP.NET Core – IServiceCollection vs ContainerBuilder
 
-When using `Autofac.Extensions.DependencyInjection.AutofacServiceProviderFactory`,
-services registered in `AutofacConfig.Configure` via `ContainerBuilder.RegisterType<T>()`
-override registrations in `IServiceCollection`.
+Autofac with ASP.NET Core - IServiceCollection vs ContainerBuilder
 
-This breaks `WebApplicationFactory.ConfigureTestServices` test overrides because the production Autofac registrations win.
+When using Autofac.Extensions.DependencyInjection.AutofacServiceProviderFactory,
+services registered in AutofacConfig.Configure via ContainerBuilder.RegisterType<T>()
+override registrations in IServiceCollection.
 
-"Pattern": Register services that are mocked in tests via
-`builder.Services.AddSingleton()` in `Program.cs`.
+This breaks WebApplicationFactory.ConfigureTestServices test overrides because the production Autofac registrations win.
 
-Use `AutofacConfig.Configure` only for services that are NOT overridden in tests
+Pattern:
+
+Register services that are mocked in tests via builder.Services.AddSingleton() in Program.cs.
+
+Use AutofacConfig.Configure only for services that are NOT overridden in tests
 (e.g. infrastructure services requiring Autofac-specific lifetime management or assembly scanning).
 
-An example `AutofacConfig.cs`:
+Example AutofacConfig.cs
 
-```csharp
 internal static class AutofacConfig
 {
     public static void Configure(
@@ -103,64 +107,100 @@ internal static class AutofacConfig
         containerActions?.Invoke(builder);
     }
 }
-```
 
-Wire up in `Program.cs`
+Wire up in Program.cs
 
-```csharp
 builder.Host.UseServiceProviderFactory(
     new AutofacServiceProviderFactory());
 
 builder.Host.ConfigureContainer<ContainerBuilder>(
     (_, b) => AutofacConfig.Configure(b));
-```
 
-### Properties not public fields
 
-DTOs and result classes must use properties (`{ get; set; }`) not public fields.
+Properties not public fields
+
+DTOs and result classes must use properties ({ get; set; }) not public fields.
+
 Public fields bypass encapsulation, break serialization in some contexts, and cannot be overridden or databinding-aware.
 
-```csharp
+
 // CORRECT
+
 public class MailpitTestResult
 {
-    public bool Sent           { get; set; }
+    public bool Sent { get; set; }
     public bool ReceivedByMailpit { get; set; }
 }
-```
 
-```csharp
+
 // WRONG
+
 public class MailpitTestResult
 {
     public bool Sent;
     public bool ReceivedByMailpit;
 }
-```
 
-Use interfaces in Core layer. Implementations in Infrastructure or Application layers.
+
+Use interfaces in Core layer.
+Implementations in Infrastructure or Application layers.
 Core has zero external dependencies.
+
 Use DefaultApplicationBuilder pattern for DI setup.
 Register services in logical order: logging first, then infrastructure, then application services.
+
 Keep classes single concern.
+Use the service pattern.
+
 Use constructor injection for dependencies.
 
 Don't create private classes.
 Make types public or internal.
 
-## C# Coding patterns.
+Keep the Main method in a project as minimal as possible.
 
-### Native interop (P/Invoke)
+Classes should have only 1 primary code path - if there are more than one split the class.
 
-C99 `bool` (`_Bool`) is 1 byte.
-`UnmanagedType.Bool` is a 4-byte Win32 `BOOL` and is wrong on Linux.
-Declare C99 bool returns as `int` and compare `!= 0` at the call site.
+Use the Autofac nuget package and create an static AutofacContainer.Create() method.
+in the AutofacContainer class and use this to setup the container.
 
-Never use `[LibraryImport]` or `[return: MarshalAs(UnmanagedType.Bool)]`.
+Use extension methods where practical.
 
-Static inline functions not exported by the shared library must be reimplemented in C# by reading the native struct layout directly via `Marshal.ReadIntPtr` and invoking the function pointer through a typed delegate.
+All services accept required parameters in constructor.
+No static service locators.
 
-### dotnet guidelines.
+Use type-safe logging with ILog<T>.
+Never use LogManager or static logger instances.
+Inject logger via constructor.
+
+Use async Task for I/O operations.
+
+Return Task<T> from services.
+
+Never use blocking calls like Wait() or Result.
+
+Only use nullable if this is most optimal.
+
+
+Native interop (P/Invoke)
+
+Always use [DllImport] with explicit
+CallingConvention = CallingConvention.Cdecl.
+
+Never use [LibraryImport] or [return: MarshalAs(UnmanagedType.Bool)].
+
+C99 bool (_Bool) is 1 byte.
+
+UnmanagedType.Bool is a 4-byte Win32 BOOL
+and is wrong on Linux.
+
+Declare C99 bool returns as int
+and compare != 0 at the call site.
+
+Static inline functions not exported by the shared library must be reimplemented in C# by reading the native struct layout directly via Marshal.ReadIntPtr and invoking the function pointer through a typed delegate.
+
+
+dotnet guidelines.
 
 Only use Debug for dotnet build configurations.
 
@@ -168,21 +208,24 @@ Pass the buildConfiguration parameter to build.xml to include it in the msbuild 
 
 this build configuration value should be added as a nuget package tag.
 
-### Software architecture.
+
+Software architecture.
 
 When creating a new console app, or webapi use DefaultApplicationBuilder or WebApplicationHostBuilder patterns.
 
 Use extension methods for service registration.
-eg `.AddConsoleApp`
+eg .AddConsoleApp
 
-### Patterns/practises to avoid.
 
-Do not create Null* fallback implementations (NullService, NullRealtimeService, etc).
+Patterns/practises to avoid.
+
+Do not create Null* fallback implementations
+(NullService, NullRealtimeService, etc).
 These hide missing required dependencies and mask failures.
 
 If a dependency is required, fail fast – don't silently no-op.
 
-Do not write inline NullLog/NoopLogger classes in production code or test files.
+Do not write inline NullLog/NoOpLogger classes in production code or test files.
 
 Use the proper logging infrastructure
 (*.Library.Logging + LogManager.GetLogger<T>()).
@@ -205,21 +248,27 @@ Do not provide default/fallback behaviour when required startup arguments are ab
 Show usage and exit.
 Silent fallbacks hide misconfiguration.
 
-### helper knowledge
+
+helper knowledge
 
 Logging in tests:
+
 use *.Library.Testing
 (TestUtils.BuildTestConfiguration())
+
 + *.Library.Logging
 (new LogBuilder(config).Build())
+
 then LogManager.GetLogger<T>().
 
 Never mock or stub ILog<T> with a hand-rolled NullLog.
 it hides log output that is useful for diagnosing test failures.
 
 Test configuration:
+
 all values a test needs
-(ports, paths, connection strings)
+(ports, paths, connection strings, etc).
+
 go in private const or private fields assigned in [OneTimeSetUp].
 
 This makes the test self-documenting and deterministic.
@@ -228,10 +277,12 @@ Do not use environment variables to inject test configuration
 (ports, connection strings, etc).
 
 Console app service injection from tests:
+
 set a static Func<IService>? ServiceProvider property on App before the test fixture runs (in the constructor).
 
 The app calls it at startup.
-Do not use a fallback null-safe operator (`??`) on ServiceProvider.
+
+Do not use a fallback null-safe operator (??) on ServiceProvider.
 tests must set it explicitly so missing wiring is caught immediately.
 
 When an app has required startup arguments, enforce them at the entry point and exit with usage text.
@@ -241,6 +292,11 @@ the fallback path is never tested and creates two code paths to maintain.
 
 Use the CommandLineParser nuget packages for applications that require command line options.
 
-Use DI to resolve the service which processes that command line option - eg
+Use DI to resolve the service which processes that command line option.
 
-_serviceCollection.Resolve<ServiceThatIsForThisCommandLineOption>.Execute(); the commandlinehandler.cs should only have CommandLineOptions code in it.
+Example:
+
+_serviceCollection.Resolve<ServiceThatIsForThisCommandLineOption>()
+                  .Execute();
+
+commandlinehandler.cs should only have CommandLineOptions code in it.
