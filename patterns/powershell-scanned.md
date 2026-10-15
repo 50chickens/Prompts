@@ -507,3 +507,43 @@ $PSNativeCommandUseErrorActionPreference = $true
 ```
 
 Do not use this on earlier PS versions.
+
+---
+
+## Execution context: Windows host or inside WSL
+
+Establish which side of the boundary you are on before you choose a command form, because the same work takes a different command line on each side.
+
+| Context | Shell you are typing into | How work reaches Linux |
+|---------|---------------------------|------------------------|
+| Windows host | PowerShell | the WSL harness runs an authored script as root |
+| Inside the distribution (default terminal is WSL) | bash | you are already there; `/mnt/c/...` paths resolve |
+
+PowerShell is the implementation language in both cases. The context changes how a script is invoked, never what it is written in:
+
+```powershell
+# On the host: the harness owns the distribution, the root user and the mount check.
+& C:\git\internal\Prompts\patterns\examples\wsl\invoke-wsl.ps1 -Script /mnt/c/git/some/folder/script.ps1 -Distro Ubuntu
+
+# Inside the distribution: reach PowerShell explicitly.
+pwsh -NoProfile -File /mnt/c/git/some/folder/script.ps1
+```
+
+Rules that follow from this:
+
+- On the host, author with Windows paths; inside the distribution, author with `/mnt/c/...` paths. A script authored for one context does not run unchanged in the other unless its paths come from `Get-Configuration`.
+- Never hand-build a `wsl.exe` command line when the harness exists. It holds the distribution, the root user, UTF-8 output from `wsl.exe` and the mount-owner check.
+- The single exception to "always PowerShell" is the bootstrap script that installs PowerShell into a fresh distribution, which cannot be PowerShell. It is a bash script and it is the only one.
+- A script executed through a shebang inside WSL needs LF line endings. With CRLF the kernel looks for an interpreter whose name ends in a carriage return and reports "No such file or directory", which reads like a missing interpreter rather than a line-ending problem.
+
+## Choosing the weight of the tool
+
+- Heavy lifting: PowerShell first. If the algorithm genuinely belongs in a typed library or PowerShell is measurably too slow, use a .NET package from NuGet, or C# for the hot path. A single file runs with no project and leaves no bin or obj in a source folder:
+
+  ```powershell
+  dotnet run measure.cs
+  ```
+
+- Banned runtimes, with no exceptions and nothing to work around: Python, Rust, Go and Ruby. Do not install one to cover a PowerShell limitation. This binds one-off measurements too, because a one-off measurement is the evidence a later task inherits.
+- Lightweight work belongs to a subagent investigation, not to a build. "Which file says X", "does this repository mention Y", "what does this constant mean" are read-and-cite questions, so delegate them. Do not write a script for a question that a search already answers, and do not compile anything for a question whose answer is a citation.
+- Pick by consequence: a task that owns a decision, a build or an artifact is done directly; a task that only has to answer a question is delegated.

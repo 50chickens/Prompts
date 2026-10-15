@@ -300,3 +300,14 @@ _serviceCollection.Resolve<ServiceThatIsForThisCommandLineOption>()
                   .Execute();
 
 commandlinehandler.cs should only have CommandLineOptions code in it.
+
+don't use nested else if - consider a switch statement for unrelated comparisons..
+Analyze if constants that are used by a class can be refactored out to a xxxConfiguration class where this can be injected to provide the configuration to the business logic. use an interface even for configuration classes - eg I
+Business logic classes should be unit testable and the xxxConfiguration should not require it as they contain no code - they are just a list of properties with defaults that are injected via DI to the service.
+
+
+banned patterns: 
+
+else if (function == _configuration.FunctionData) | is switch better here, or are these unrelated comparisons resulting in complex & unrelated if/then/else/elseif type nesting.
+private readonly Config1 _configuration = new Config1(); | this should be an IConfig1 and injected in via the primary constructor. 
+public Folder2 AddHeader(int major, int minor, long wordCount) | consider converting this to an extension method. small calculations like this add no value to the class that is using it. we can then create a targetted unit test specifically for the extension method and a seperate test for the class containing the business logic. 
