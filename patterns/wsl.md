@@ -6,6 +6,19 @@ Two distributions are installed. The default is Ubuntu-20.04. A second, Ubuntu 2
 
 The execution flag is lowercase -e. This wsl.exe rejects -E with "Invalid command line argument: -E".
 
+## Which side you are on
+
+| Context | Shell you are typing into | How work reaches Linux |
+|---------|---------------------------|------------------------|
+| Windows host | PowerShell | the harness below runs an authored script as root |
+| Inside the distribution (the distribution is the default terminal) | bash | you are already there, and `/mnt/c/...` paths resolve |
+
+The context changes how a script is invoked, never what it is written in. From inside the distribution that means reaching PowerShell explicitly:
+
+    pwsh -NoProfile -File /mnt/c/git/some/folder/script.ps1
+
+A script authored on one side does not run unchanged on the other unless the paths it uses come from `Get-Configuration`, which is the reason path resolution belongs there rather than in a function.
+
 ## Running anything in WSL
 
 All WSL work goes through the execution harness, never a hand-built wsl.exe command line:

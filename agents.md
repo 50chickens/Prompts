@@ -1,4 +1,5 @@
 use the patterns folder relative to agents.md for the patterns related to each technology.
+Keep each pattern document to its own technology. A rule or topic that belongs to a different technology is stated in that technology's document and linked from here, never restated - a language pattern carries language rules and nothing else.
 go and read .github/instructions/terminal.instructions.md relative to agents.md for terminal command rules. terminal.md does not exist in this folder, so a brief that names it sends the agent looking for a missing file.
 In PowerShell, a hex literal above int32::MaxValue parses as a negative int32, so 0xC4403D78 is not the value you wrote and comparisons against it silently match nothing. Write 0xC4403D78L. This cost two wasted measurements, so treat any hex literal with the top bit set as needing the L suffix.
 
