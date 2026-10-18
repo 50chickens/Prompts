@@ -28,6 +28,7 @@ description: Write high-quality, readable PowerShell scripts following these con
 | -ErrorAction SilentlyContinue on writes/mutations | Silently swallows failures that must surface |
 | Get-Command guard before calling a required cmdlet | Hides missing-cmdlet errors; use `Invoke-PreflightCheck` instead |
 | if (-not $?) | Use `throw` – let `$ErrorActionPreference` propagate the failure |
+| `exit 1` (or any `exit` outside a top-level guard) | Terminates the whole process from inside a function, so later steps never run | `throw` – let `$ErrorActionPreference` propagate the failure |
 | try/catch blocks (except cleanup) | Masks failures; let errors surface naturally |
 
 ### Control flow and structure
@@ -39,6 +40,10 @@ description: Write high-quality, readable PowerShell scripts following these con
 | Magic strings inline functions | All come from `$configuration` |
 | Path arithmetic inside `Invoke-` functions | All come from `$configuration` |
 | Multiple inline conditionals | Use `switch` form |
+| Backtick line continuation | Unreadable, and breaks on a trailing space | Splatting or string interpolation |
+| Nested functions | The inner copy shadows the outer function and cannot be called elsewhere | Keep functions flat; return early instead of nesting |
+| `if`/`elseif`/`else` chain testing unrelated conditions | Each branch is really a different named state | A `Get-*` function returning one state value via early exits, then `switch` on it |
+| `if`/`else` in the main execution block | Idempotency and gating belong inside the function that performs the step | A flat sequence of calls, each gated inside its own function |
 | Return twice -> Communication lost | Assign to variable, then return it |
 | Array index access `$array[i]` | Use `Select-Object -Index i` |
 | Script-level global variables | Use `Set-Variable -Scope Script` |
@@ -396,6 +401,55 @@ switch -Regex ($line)
 
 ---
 
+## Grouping repeated near-identical statements
+
+When the same statement shape appears more than twice with only a name or value changing (validation checks, tag lookups, find/replace rules), loop over an array of names or `[pscustomobject]` rules instead of hand-writing one `if`/`throw` per value.
+
+```powershell
+function Invoke-PreflightCheck($configuration)
+{
+    @('ResourceBucket', 'ReleaseVersion', 'StackName') |% {
+        if ([string]::IsNullOrWhiteSpace($configuration.$_))
+        {
+            throw "$_ is required."
+        }
+    }
+}
+```
+
+The same applies to replacements - build `[pscustomobject]@{ ReplaceFrom = ...; ReplaceTo = ... }` rules and iterate, checking idempotency before each replacement.
+
+---
+
+## Per-item detail objects in loops
+
+When a loop body needs several derived values per item, derive them once into a single `[pscustomobject]` from a dedicated `Get-*Details` function, then pass that object through the `Invoke-` steps. Do not re-derive the same value in each step, and do not leak the values into implicit shared scope.
+
+```powershell
+function Get-PackageDetails($configuration, $package)
+{
+    $packageFileName = Get-FilenameFromUrl $package.Url
+    return [pscustomobject]@{
+        Package = $package
+        PackageFilePath = "$($configuration.PackageDir)\$packageFileName"
+        PackageFolderDir = "$($configuration.PackageDir)\$($package.Name)"
+    }
+}
+
+function Invoke-InstallPackages($configuration)
+{
+    $configuration.Manifest |% {
+        $packageDetails = Get-PackageDetails $configuration $_
+        Invoke-DownloadPackage $packageDetails
+        Invoke-InstallPackage $packageDetails
+    }
+}
+```
+
+Assign every value the loop body uses to a local variable first. A mistyped property name inside a template string resolves to `$null` silently, and an unqualified name silently reads the outer scope, so check each property name against the object definition.
+
+---
+
 ## Test-Should pattern
 
 ```powershell
@@ -476,7 +530,7 @@ function Get-ImdsToken {
 function Get-ImdsValue ([string]$path)
 {
     $token = Get-ImdsToken
-    return Invoke-RestMethod -Uri "http://169.254/latest/meta-data/$path" `
+    return Invoke-RestMethod -Uri "http://169.254.169.254/latest/meta-data/$path" `
         -Method GET `
         -Headers @{ 'x-aws-ec2-metadata-token' = $token } `
         -TimeoutSec 5
@@ -507,6 +561,34 @@ $PSNativeCommandUseErrorActionPreference = $true
 ```
 
 Do not use this on earlier PS versions.
+
+---
+
+## Do not guard against deployment preconditions
+
+Only guard state that is genuinely unknown when the script runs - whether a binding is already configured, whether a service is running, whether a certificate is present.
+
+Do not add `if`/`throw` guards for what the deployment pipeline guarantees:
+
+- a package folder exists - it is pre-deployed before the script runs
+- a config file exists - it is present on a server built by the pipeline
+- an installer exists inside an extracted package - true when the package version is correct
+- web or machine config exists - pre-deployed
+
+Those guards test deployment correctness at runtime and fail with a message that hides the real cause. Let the next line throw with the real path instead.
+
+The same rule removes dead branches: when every entry in a config collection supplies a property, do not add an `else` branch for the absent case.
+
+```powershell
+# BANNED - the else branch is dead, every package has Executable set
+if ($package.Executable) { $executablePath = "$extractDir\$($package.Executable)" }
+else {
+    # fallback that can never run
+}
+
+# CORRECT
+$executablePath = "$extractDir\$($package.Executable)"
+```
 
 ---
 
