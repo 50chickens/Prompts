@@ -18,11 +18,6 @@ public class LatestBaseImageSelector
     public Ami? Select(ImagePlatform platform, IEnumerable<Ami> baseImageAmis)
     {
         var namePrefix = platform == ImagePlatform.Windows ? _windowsPrefix : _linuxPrefix;
-
-        return baseImageAmis
-            .Where(ami => ami.MeetsPlatform(platform))
-            .Where(ami => ami.HasNamePrefix(namePrefix))
-            .OrderByDescending(ami => ami.CreationDate)
-            .FirstOrDefault();
+        return baseImageAmis.Where(ami => ami.MeetsPlatform(platform)).Where(ami => ami.HasNamePrefix(namePrefix)).OrderByDescending(ami => ami.CreationDate).FirstOrDefault();
     }
 }

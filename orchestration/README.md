@@ -35,10 +35,12 @@ resumable.
 | [verification.md](verification.md) | Adversarial validation, trust but verify, and what a defect looks like |
 | [reporting.md](reporting.md) | Writing findings incrementally, and reporting theories as well as conclusions |
 | [models.md](models.md) | Choosing a model per unit, and why a forced model is sometimes required |
+| [capability.md](capability.md) | What a unit really inherits, what it may build versus install, whether units should talk to each other, and the levers that make a unit finish |
 | [failures.md](failures.md) | Service failures, stalls, rate limits, and how to resume cheaply |
 | [measurement.md](measurement.md) | The economics of a unit: what a run costs and what it buys |
 | [gate.md](gate.md) | The quality gate, and why exactly one party runs it |
 | [documents.md](documents.md) | Which documents to keep, who owns each, how they go stale, and which decisions are the human's |
+| [handover.md](handover.md) | Writing the document that hands the whole job to a different agent: the four-question test, what goes in, what must not, and the anti-patterns |
 | [templates/task-brief.md](templates/task-brief.md) | A blank brief to copy |
 | [samples/](samples/) | Small worked examples: a lock helper, a queue status script, a report skeleton |
 
