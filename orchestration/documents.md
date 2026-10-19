@@ -57,6 +57,50 @@ Rules that prevent most of them:
 - **Check a citation by opening the source**, not by re-reading the sentence that cites it. An extraction artefact
   repeated across several figures looks exactly like corroboration.
 
+## References that do not rot
+
+Every reference decays, and a stale one is worse than a missing one because it resolves to something that looks
+verified. Anchor each claim to the thing that cannot move:
+
+| Target | Anchor | Never |
+|--------|--------|-------|
+| A frozen vendor document | printed page label plus figure or table number, with the document number and revision | a character offset or an extracted-text line number without the page it came from |
+| A reference clone | repository name, tag or commit, then symbol or file path | a `HEAD`-relative claim, or a path that assumes the clone is inside the project |
+| The project's own code | project, file, symbol; for a load-bearing claim, the commit | a line number, which changes with every lane |
+| A living document | the file path plus a quoted phrase | a line number into a file other units are editing |
+| A generated report | the script and config that produced it | the report itself as evidence; it is scratch and can be regenerated into different text |
+
+The worked failure is a set of findings citing line numbers into a document that was later replaced. The
+citations resolved to nothing and the claims they supported became unreadable. A quoted sentence would have
+survived the rewrite.
+
+### Absolute paths, declared once
+
+Some roots live outside the project and cannot be relative to it: source material, reference clones, generated
+extractions and analysis installs. Do not avoid absolute paths, which is impossible for these; declare them once
+in the environment inventory, and let briefs and documents name the declaration. A move then becomes one edit
+instead of thirty.
+
+Inside the project, a filesystem-absolute path in a document that lives under the project is a defect even when
+it is currently correct.
+
+### Counts that rot
+
+A suite count, a test total, a number of source documents, a number of open questions: each is true for a week.
+Write the command that counts it, or write the number with the date and the command beside it. The gate's own
+report already carries its total; do not copy that total into prose.
+
+### Tombstones
+
+When a document moves, leave a one-line stub pointing at the replacement, then fix the pointers in the same
+sitting. A deletion that leaves citations dangling costs more than the clutter it removes.
+
+### Repairing dead citations is a unit
+
+A citation that resolves to nothing is worse than no citation, because it reads as verified. Repairing one
+requires the original claim read beside its current authority, so it is a unit with a file list, not a
+pass-through edit.
+
 ## Keeping a map current
 
 The map is the document most likely to be abandoned, because it is the one that must change every time anything
@@ -117,3 +161,19 @@ that was never in question. If a document is yours and progress has been made, u
 
 The corollary is that a document owned by a lane should not be edited by a passer-by. Several documents are
 load-bearing for other units, so a runner that wants a change in one describes it in its report instead.
+
+## Acceptance and the record are one sitting
+
+A report accepted but not recorded in the status map is a rumour. Update the status record in the sitting where
+the acceptance happens, not later. The next agent reads the map first, and an unrecorded acceptance is measured
+again.
+
+## The short memory files
+
+Four short files stop repeated work: assumptions (what may be taken as true), refuted claims (settled
+negatives), command errors (a command that failed once will fail for the next unit), and hints or measurement
+rules (the idiom that worked, and the condition under which a measurement is valid). Each must stay short; an
+assumptions document nobody reads is worse than none, because it implies the answers are recorded.
+
+A claim that dies goes into the refuted list first and is removed from whatever asserted it second. Record
+first, remove second: where a refuted claim sits decides how it reads.

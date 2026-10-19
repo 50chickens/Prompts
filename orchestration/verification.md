@@ -132,3 +132,27 @@ Each validation batch should leave, at minimum:
 
 The count of **undetermined** items is the useful measure of how much of the project rests on unverified
 assertion. It should go down over time, and it will not go down by itself.
+
+## Judging a report: three checks, in order
+
+1. **Is the deliverable present at the path the brief named?** If not, the report describes intentions rather
+   than work.
+2. **Does every claim carry a source, and does the source say what the claim says?** Spot-check one
+   load-bearing claim by opening the cited text. The headline is usually right; the supporting statement is
+   where a claim breaks.
+3. **Does the report state what it could not determine?** A report with no gaps is more likely to be
+   overclaiming than complete.
+
+Only then run the gate. A red gate in files the brief did not own is a collision, not a defect in the unit.
+
+## Ask for a rate, not a verdict
+
+A review that reports "11 of 13 cases, field-exact, control accepted both orders" can be attacked and compared.
+"Looks correct" cannot. Require the measured rate, the sample, and the control. A verdict without a rate is an
+opinion with a confident tone.
+
+## A moved number is not progress
+
+A unit that reports "124 units processed" has reported a number, not an advance. Ask for the identity of the
+thing that stopped it - the form, the address, the input class - and read the number second. A unit that removes
+a failure class is progress. A unit that moves a boundary without changing the class is noise.

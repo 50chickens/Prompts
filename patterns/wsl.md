@@ -2,7 +2,19 @@ WSL patterns.
 
 WSL may or may not be the default terminal, so establish which side of the boundary you are on before choosing a command form. When the host shell is PowerShell, Linux work is started deliberately from there with the harness below. When the distribution is the default terminal the host shell is bash, so quoting and path separators are bash's and `/mnt/c/...` is the form that resolves. Either way the work is written in PowerShell, and this file describes how it reaches Linux.
 
-Two distributions are installed. The default is Ubuntu-20.04. A second, Ubuntu 26.04, is registered as Ubuntu, and that is the one the tooling targets: Tool2 reports Ubuntu 24.04 or newer as supported and rejects 20.04 as unsupported_host. Pass -d Ubuntu whenever the distribution matters, which for this tooling it does.
+Do not assume a version or a registered name. Resolve the distribution by matching its registered name against the pattern `^Ubuntu`, so any Ubuntu version is found rather than one exact string. Take the highest version when several match, and fail loudly when none does.
+
+    $previous = $env:WSL_UTF8
+    $env:WSL_UTF8 = 1
+    $names = @(wsl --list --quiet)
+    $env:WSL_UTF8 = $previous
+    $candidates = @($names | Where-Object { $_ -match '^Ubuntu' })
+    if ($candidates.Count -eq 0) { throw "No distribution matching '^Ubuntu' is installed: $($names -join ', ')" }
+    $distro = $candidates | Sort-Object { if ($_ -match '(\d+(\.\d+)*)') { [version]$matches[1] } else { [version]'0.0' } } -Descending | Select-Object -First 1
+
+Pass that resolved name to `-Distro`. A literal such as `Ubuntu`, `Ubuntu-20.04` or `Ubuntu-26.04` fails as a missing distribution the moment the host registers a different name, and the message does not mention versions.
+
+The tooling still requires Ubuntu 24.04 or newer and rejects older releases as unsupported_host, so apply the version floor after the match rather than encoding it in the name.
 
 The execution flag is lowercase -e. This wsl.exe rejects -E with "Invalid command line argument: -E".
 
@@ -25,7 +37,7 @@ All WSL work goes through the execution harness, never a hand-built wsl.exe comm
 
     & C:\git\internal\Prompts\patterns\examples\wsl\invoke-wsl.ps1 -Script /mnt/c/git/project1_linux/scripts/host/install-toolchain.ps1
 
-The harness takes the script path and, when the distribution matters, `-Distro <name>`, and runs the script as root, because these scripts configure the machine. It is not optional in practice: the default distribution can be too old for the tooling, so a step that needs the supported one passes `-Distro`. It holds the things that are easy to get wrong: the distribution, the root user, UTF-8 output from wsl.exe, and the mount check below.
+The harness takes the script path and, when the distribution matters, `-Distro <resolved name>`, and runs the script as root, because these scripts configure the machine. It is not optional in practice: the default distribution can be older than the tooling supports, so a step that needs a supported one resolves the name as above and passes it. It holds the things that are easy to get wrong: the distribution, the root user, UTF-8 output from wsl.exe, and the mount check below.
 
 There are no script arguments and no root switch. A script that needs to change behaviour reads that from its own configuration file in Get-Configuration, and a real choice belongs in a ci.ps1 pipeline rather than on the harness command line. Scripts that run in WSL are otherwise ordinary PowerShell scripts, so the powershell patterns and the orchestration-script pattern apply to them unchanged.
 
@@ -33,7 +45,7 @@ There are no script arguments and no root switch. A script that needs to change 
 
 Nothing in WSL fails as confusingly as a root-owned /mnt. WSL usually mounts /mnt with the uid of the distribution's default user, but a distribution can be left with a root-owned mount, and then every chmod and utime fails with EPERM for every non-root user. The symptoms name the wrong cause: git clone reports "could not set 'core.filemode' to 'false'", checkout and npm fail, and MSBuild reports "The last access/last write time on file ... cannot be set". Check the owner before believing any of those messages:
 
-    wsl -d Ubuntu -e stat -c %u /mnt/c
+    wsl -d $distro -e stat -c %u /mnt/c
 
 It must print 1000. The harness restarts the distribution when it does not, and if a restart does not repair it, wsl --shutdown does. Restarting the distribution is cheap; rebuilding the installation is not, so do not solve this by reinstalling.
 
@@ -46,7 +58,8 @@ Everything written for this work lives on the Windows drive under the project fo
     project1_linux/home        HOME for this work, so Tool1 config and build-tool caches land on the Windows drive
     project1_linux/work        scratch: Tool1 smoke projects, Tool2 snapshots
 
-Build tools work from that layout with no extra configuration, because they keep their cache under HOME. A .NET build passes --artifacts-path into that tree so its obj directory does not land inside the source repository, which the Windows build also uses.
+Build tools work from that layout with no extra configuration, because they keep their cache under HOME.
+ A .NET build passes --artifacts-path into that tree so its obj directory does not land inside the source repository, which the Windows build also uses.
 ## Scripts
 
 The only bash script is install-powershell.sh, which installs PowerShell 7 and the libicu it needs. It cannot be PowerShell for the obvious reason. Everything after it is PowerShell.

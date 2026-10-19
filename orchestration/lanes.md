@@ -106,3 +106,58 @@ lane3  owns: nothing writable; writes report3.md only
 
 The third row is the cheapest lane to run and often the most valuable, because a read-only unit can run
 alongside every implementation lane without contention.
+
+## What a lane actually has
+
+Do not assume a lane inherits the orchestrator's tool surface. Measure it once per host and write briefs against
+what was measured:
+
+| Capability | Assume before measuring |
+|------------|--------------------------|
+| Shell, file read and write, search, glob | present |
+| Repository instruction files | likely present, because they are scoped to the workspace |
+| Skills and plugin-supplied tools | unverified, resolved per agent |
+| Domain MCP servers | absent until measured; a lane that cannot find the tool looks like a lane that gave up |
+| Agent-launching tools | may be present, so every brief forbids their use explicitly |
+
+The probe is one lane asked four questions and nothing else: which model identifier are you on, which servers
+are in your tool list, can you read a project file, and which tools are missing. Record the answers with the date
+before writing the next brief.
+
+## Provisioning: the orchestrator installs, the lane builds
+
+- **The orchestrator provisions** anything system-level, shared or needed by more than one lane: one script,
+  installed once, before the lanes that need it, pinned and reproducible on another host.
+- **A lane builds** a tool it needs, provided the tool is a file it owns - a script under its own work folder, a
+  single-file program run directly, a compiled loop. The report cites the tool, not only its output, so the next
+  unit can regenerate the result.
+- **A lane does not install** packages, runtimes or system components. An install is unpinned, mutates shared
+  state while other lanes assume stability, and turns a bounded unit into an open-ended one. A lane that believes
+  it needs an install reports the tool, why it needed it, and what it would have bought; the orchestrator
+  provisions it and relaunches.
+
+## No live peer channels by default
+
+Two lanes talking to each other produce agreement, and agreement is not evidence. The record then shows two lanes
+that concur without showing why, and independent validation is destroyed at the point it matters: if the author
+and the validator talk, the validator becomes a co-author.
+
+Two lanes that can talk also negotiate scope. The boundary they agree is unauthored: no brief covers it, and the
+ownership lists overlap in a way the orchestrator does not know about.
+
+Where coordination is genuinely needed, use an append-only questions file that the orchestrator reads and relays
+at fixed intervals. It is asynchronous, it leaves a record, it cannot deadlock, and the decision stays with the
+party who owns it.
+
+## Terminal hygiene
+
+A lane that leaves a process running leaves it on the host, and the next lane inherits the damage: a stale build
+server holding assemblies, a watcher holding the output directory, an idle shell holding a console.
+
+Every brief says: stop every shell session you start, do not leave a background or detached process, and if a
+command has to outlive a single call, say so in the report.
+
+The orchestrator takes a process-count baseline before a batch and compares it after. If the count grew by the
+number of lanes run, something was left behind. Identify by id and start time, not by name, and stop the
+specific process. A long-running command that exceeded its initial wait is not a leak; it is still running and
+its output is retrievable, so read it rather than starting a second copy.

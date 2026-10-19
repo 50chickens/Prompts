@@ -27,6 +27,21 @@ description too many, and the message is the one that goes stale first.
 7. **Output** - the report path, and the instruction to append as you go.
 8. **Constraints** - languages allowed, tools forbidden, and where the primary sources live.
 
+The model identifier belongs at the top of the brief, spelled exactly as the project mandates it, with the
+instruction to echo it as the first line of the report stub.
+
+## Pre-flight the brief
+
+Check in seconds what would otherwise cost a lane:
+
+- Every path the brief names exists, in the form the brief gives it.
+- The report path's parent exists and is writable.
+- The model identifier is the project's mandated one, spelled exactly.
+- The toolkit the brief names is reachable from the lane type being launched.
+- The corpus is bounded by a name, a count or an address range rather than by "everywhere".
+
+A brief with a dead path wastes an entire lane, and the check is the highest-value habit in this file.
+
 ## Standing rules worth putting in every brief
 
 These are the ones that have proved load-bearing. Keep them in the template rather than rewriting them per lane.
@@ -58,6 +73,19 @@ These are the ones that have proved load-bearing. Keep them in the template rath
 - **Cite the settled negatives rather than re-deriving them.** A project that keeps a refuted-claims document
   expects a lane to check it and move on, not to spend a unit rediscovering a settled no.
 
+## The three sentences that must appear in every brief
+
+State these even when the template states them, because a lane reads its own brief first:
+
+- Do not run the gate; the orchestrator runs it once after handover.
+- Create the report as a stub within your first few tool calls, and put theories in it as well as findings,
+  labelled as theories.
+- If a toolkit this brief names is unreachable, stop at once and say so rather than substituting a slower
+  method.
+
+The second is not ceremony: an unproved reading that turns out to be right is worth handing on, and the next
+lane cannot recover it from a measurement alone.
+
 ## Context economy: name one document, not a folder
 
 **A brief should name the one specification file the unit needs, not the folder that contains the
@@ -82,6 +110,17 @@ Do not widen the table to make a check pass.
 Do not touch <file1>; if the fix needs it, stop and say so.
 ```
 
+
+## Continuation briefs
+
+A relaunch is a brief whose deliverable is "finish the work at this path". It names the report path, what is
+already established there, and the last completed step. It never restates the original brief: restating invites
+a restart, and a restart pays for the first attempt's discoveries twice. Write the continuation to the same
+report path so the evidence accumulates in one place.
+
+Two failures on one unit mean the brief is wrong. Rewrite it narrower, name the one file, supply the path the
+lane could not find, or split it. Three failures mean the unit is not ready: retire it with the reason, or write
+the preceding unit that supplies what it kept needing.
 
 ## Sizing a brief
 

@@ -110,3 +110,15 @@ A blocked lane that says why is a useful lane.
 4. **Was another writer active?** Check the in-progress records, not the filesystem.
 5. **Relaunch with "continue, do not restart"** if partial work exists.
 6. **Record the failure in the lane's report**, so the next reader knows what was lost and what was not.
+
+## Two failures mean the brief, three mean the unit
+
+Two failures on the same unit mean the brief is wrong, not the lane. Rewrite it: narrow it, name the one file,
+supply the path the lane could not find, or split it into two. Three failures mean the unit is not ready: retire
+it with the reason, or write the preceding unit that supplies what the failing one kept needing.
+
+What never happens is the orchestrator taking the unit over. If it would be faster to do it directly, that is
+true and irrelevant: the speed applies once, and every later blocked unit is now the orchestrator's as well.
+
+Environment outages look different from a blocked lane: the lane reports nothing at all rather than reporting a
+blocker. Distinguish the two before rewriting a brief.

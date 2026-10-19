@@ -1,4 +1,6 @@
 ## c# Coding patterns.
+
+UI rules for Avalonia desktop applications live in [avalonia.md](./avalonia.md). They are not repeated here.
 use the default application builder pattern in c#. program.cs should be as small as possible.
 for all of the library code - seperate classes into DTOs and services. 
 dependency injection wiring could go into a seperate static class other than program.cs. 
@@ -25,6 +27,9 @@ Use type-safe logging with ILog<T>. Never use LogManager or static logger instan
 Use async Task for I/O operations. 
 Return Task<T> from services. 
 Never use blocking calls like Wait() or Result.
+A method that returns Task but performs its work synchronously before returning is a defect: it blocks whoever awaited it. File, directory and network work belongs on the thread pool (Task.Run) inside the service, or behind it at the caller, and the caller must not assume the work has started when the call returns.
+Long-running work needs a way to stop and a way to pause that the work itself checks. Cancellation goes through CancellationToken; pause and stop-after-current-item go through an injected control object the loop polls, because a token cannot express pause.
+Persist user settings through one background writer that owns a thread and coalesces to the latest value. A property setter that writes a file on the calling thread puts disk latency inside the UI event, and two setters racing produce a half-written file. Write to a temporary path and move it into place so a crash cannot leave truncated settings.
 Only use nullable if this is most optimal.
 
 ### Native interop (P/Invoke)
@@ -66,3 +71,40 @@ DIRECT EDITING permitted only for changing versions of existing packages.
 VERSION UPDATES require verification: target version exists, determine if managed per-project or centrally, update version, run dotnet restore.
 do not create nuget.config files in the project directory. if the nuget source does not exist you should never create it. The build should fail. NuGet sources are configured in the user's global config. Never create project-level NuGet.Config files.
 Do not append -Debug or -Release suffixes to package names.
+
+## Long-running operations
+
+Do not measure before starting. Start the work, then measure alongside it on its own thread, and ramp the parallelism up when the measurement lands. A recursive scan that gates the first byte of work is the classic mistake: it is instant on a fixture and minutes on real data.
+Validate input where the user supplies it, with checks that answer immediately. A probe that has to walk a tree belongs nowhere in the start path; if a job fails because of disk space or a locked file, report it from the work itself.
+Concurrency limits that open up during a run belong behind the same control object the loop already polls for pause and stop, and are raised by releasing permits on its semaphore.
+
+## Progress and diagnostics for long operations
+
+Report progress inside an item, with a byte count, not only when the item finishes; throttle the reports with a clock so a thousand threads do not flood the consumer, and make the interval configurable so a test can turn it off.
+Guard any observable collection mutated from a worker thread with a lock in the view model, even when you already post to a synchronization context, because the same code runs in tests with no dispatcher.
+One state is not enough for a comparison: missing on the target, missing on the source, identical and different are four outcomes, and content comparison only makes sense for items present on both sides.
+Write a plain text log to a logs folder under the working directory, log one line at startup so the file exists, and expose it as a file the user can open with the shell.
+Open files with the least restrictive sharing that still works: FileShare.ReadWrite | FileShare.Delete for reads, at least FileShare.ReadWrite for writes. Exclusivity is a choice, not a default.
+
+## Retry policy
+
+Keep one retry policy per operation, owned by the layer that knows what the user asked for. An inner loop that retries raw IO failures defeats an outer policy that says "skip a locked file", because the inner loop burns its own budget first. Rethrow anything the outer layer classifies, and let the inner loop retry only genuinely transient faults.
+Express a retry budget in wall-clock terms when you design it, not in attempts. Attempts times delay is the number the user experiences as a hang.
+Use await Task.Delay in async code; Thread.Sleep inside a loop that holds a semaphore parks a pool thread and keeps the permit.
+Log every retry with a timestamp so a stalled operation is diagnosable from the log alone.
+
+## Concurrency limits
+
+A limit on concurrent work bounds work that is running, so an item waiting to retry must release its slot and take it again on the next attempt. Otherwise a few permanently failing items consume the budget and everything else waits behind them.
+Bound in-flight items separately from running items. Running is the user's performance choice; in-flight is your safety limit, and it is what keeps a two million file tree from creating two million tasks.
+Size the thread budget from running items times threads per item, capped at a constant. Never derive both from one optional flag.
+Only one layer owns retries. A low level loop that retries IO errors defeats the policy layer and multiplies the budget into minutes per item.
+Classify failures by the OS error code, including the ones that are not literally access denied: an unresolvable reparse point will not succeed on the second attempt.
+Delete a temporary destination file when an attempt fails, and offer zero in every "how many retries" setting.
+
+## Adaptive concurrency
+
+Treat a configured concurrency limit as a ceiling and start at one unit of work. Add a unit only while measured throughput keeps up, and hold when it drops. Compare each sample with the previous sample rather than an all time best, so a fast phase does not freeze the ramp for the rest of the run.
+Measure throughput, not device utilisation: utilisation counters are platform specific and read 100 percent for a queue that is thrashing.
+Keep the decision in a pure object that takes a byte delta, an elapsed time and whether work is pending, so it can be unit tested without a running scheduler. Keep the sampling in the engine, make the interval configurable, and log every expansion with the throughput behind it.
+Never expand when nothing is queued.

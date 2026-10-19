@@ -34,6 +34,16 @@ Rules that make the lifecycle real rather than ceremonial:
 - **Validation is a separate stage, not a formality.** Work lands in `to_be_validated` and stays there until
   something adversarial has looked at it. See [verification.md](verification.md).
 - **An item is retired with a reason.** "Not worth doing because X" is a complete answer.
+- **Taking an item is one atomic operation.** A rename or a move into the in-progress state must be atomic, so
+  two lanes cannot take the same item. Never write to an item that is claimed, and never release a claim on a
+  lane's behalf while the lane is still running.
+- **Never edit a brief in flight.** If it is wrong, let the lane finish or stop it, then handle the report. A
+  brief edited underneath a running lane produces work that matches neither version.
+- **Release a stale claim only after confirming the lane is gone.** A claim with no running agent behind it
+  blocks the item forever; a claim released under a live lane collides with it.
+- **The validator is a different agent from the author.** An agent validating its own work is not a validation.
+- **Move a finished item in the same sitting.** A finished item left in the queue reads as available work and
+  gets run twice.
 
 ## Selecting the next item
 

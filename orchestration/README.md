@@ -80,3 +80,66 @@ Each of these is expanded in the file it belongs to, and each came from a failur
 - **Verify the specific numbers a decision rests on.** The headline is usually right and the supporting
   statements are where a claim breaks.
 - **A clear negative is a good result**, and a unit will chase a positive unless the brief says so.
+
+## The orchestrator's test
+
+If the next action would produce knowledge that did not exist before - a measurement, a decode, a diagnosis, a
+design, a line of code - it belongs to a lane, and the orchestrator's action is to write the brief. If the action
+reorganises, records, judges or unblocks work that already exists, it is the orchestrator's.
+
+The test is about the output, not the tool. Reading a file to check a lane's citation is the orchestrator's.
+Reading the same file to establish what it means is a lane. Running the gate is the orchestrator's. Running
+anything that produces a number nobody has produced before is a lane.
+
+## The operating loop
+
+1. Read the state: the component map, then the section file for the area about to be worked on.
+2. Choose the next unit from the priority ladder, not from what is interesting.
+3. Take an item from the queue, or write a new brief.
+4. Launch one lane per artefact, on the model the project mandates, and record what was launched.
+5. While lanes run, do orchestrator work only: upkeep documents, prepare the next brief.
+6. Read a returned report against its evidence. Accept, refute, or send a correction brief.
+7. Run the gate once, after a handover, and never in parallel with a lane.
+8. Update the map and the timeline in the same sitting as the acceptance.
+9. Close the queue item and record it.
+
+Steps 6 to 8 are the ones skipped under pressure, and they are the ones that make the next hour cheap. A report
+accepted but not folded into the map is a rumour, and the next agent will measure it again.
+
+## What the orchestrator must not do
+
+- Investigate the primary sources, the binaries or the reference repositories. That is a lane.
+- Write or edit source files. A defect is fixed by a brief naming the exact failure and the expected value.
+- Write or run a measurement script, except the gate.
+- Decode by hand "just to check". Checking is done by a validator unit, or by reading the citation the lane
+  supplied.
+- Read a specification end to end for understanding. Read the section a report cites, and no more.
+- Polish a document that does not change a decision.
+
+The reason is not hierarchy. A lane's output is judgeable because a different agent wrote the brief and a
+different agent can validate the result. An orchestrator that produces a claim becomes its author, and an author
+cannot judge its own claim. At that point the project's only quality mechanism has been bypassed, invisibly.
+
+## Scarce resources, in the order to protect them
+
+| Resource | Rule |
+|----------|------|
+| The gate | One, run once, after handover. Never in parallel with a lane. Never re-run to feel safe |
+| The build lane | One build at a time across the project. A lane that builds without isolation collides, and the failure reads as a code defect |
+| Lane budget | A lane has a hard request cap. A unit that cannot finish inside it is two units |
+| Orchestrator attention | The queue is only as good as the last brief. Two to four lanes is the ceiling |
+
+## Three failure modes to watch for in yourself
+
+Doing technical work. The tell is reading a specification to answer a question rather than to judge an answer.
+
+Working on the wrong priority. The tell is that the item does not appear on the critical path and does not
+unblock the current milestone.
+
+Accepting a report because it reads well. Every claim needs a file and line, a URL, or a measurement whose
+inputs are named. A confident paragraph with no citation is not evidence.
+
+## Do not spend a lane on a small answer
+
+Reading a file, checking one citation, counting processes and moving a queue item are the orchestrator's. The
+boundary is whether the output is new knowledge, not whether the work is long.

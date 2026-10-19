@@ -311,3 +311,22 @@ banned patterns:
 else if (function == _configuration.FunctionData) | is switch better here, or are these unrelated comparisons resulting in complex & unrelated if/then/else/elseif type nesting.
 private readonly Config1 _configuration = new Config1(); | this should be an IConfig1 and injected in via the primary constructor. 
 public Folder2 AddHeader(int major, int minor, long wordCount) | consider converting this to an extension method. small calculations like this add no value to the class that is using it. we can then create a targetted unit test specifically for the extension method and a seperate test for the class containing the business logic. 
+
+
+don't use ! in variables. 
+look for opportunities to use extension methods. eg 
+
+an example of a method that is very badly structured is under examples\csharp\bad.cs - this class is responsible for determining whether an Octopus project deployment should be triggered based on the latest AMI images from two different AWS accounts. 
+it has these bad/banned patterns:
+
+it takes a bool that causes different behaviour on whether we're dealing with a windows or linux based ami. 
+calling AWS services directly without proper abstraction. 
+using a foreach loop with nested if/then/else/elseif.
+not have nested if/then/else/else if logic that deals with the objects based on their properties.
+conditional logic inside filtering code - eg .FirstOrDefault(x => x.Name.StartsWith(somePrefix ? somePrefix : string.Empty))
+complex structuring of conditional logic - eg !string.IsNullOrWhiteSpace(sortedcorp2AmiModels?.Id). 
+nested negated evaluation with nested nullable checks - eg !string.IsNullOrWhiteSpace(sortedcorp2AmiModels?.Id).  this is almost impossible to read/understand the state.
+creating request/response objects in the middle of the business logic. eg await RemoveForceTag(new DeleteTagsRequest(){...})
+unneccesary checks for objects/resources where they can be reasonably assumed to exist - eg if (imagesMatchingcorp1OwnerId?.Images == null || imagesMatchingcorp1OwnerId.Images.Count == 0).
+large try/catch block that encompasses the entire method. Use validation/filtering before even calling this method to exclude invalid inputs or states. 
+multiple concerns in the same methods. eg the goal of this method is to determine whether to trigger an Octopus project deployment, but it also handles AWS service calls, image filtering, and tag removal.

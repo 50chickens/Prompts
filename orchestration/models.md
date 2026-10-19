@@ -3,7 +3,18 @@
 Which model a lane runs on is a scheduling decision with a cost, and it is one of the few settings an
 orchestrator controls directly.
 
-## The default
+## The project mandate wins
+
+**If the project's own instructions name the model, that name is mandatory and the heuristics in this file do not
+apply.** Every lane is launched on that exact identifier, the brief names it on its first line, and the lane
+echoes it as the first line of its report stub. The orchestrator does not substitute a cheaper, faster or more
+capable model for any unit, and does not treat the mandate as a default that a difficult unit may exceed. A
+change to the mandate is the project owner's decision, recorded once, not a per-lane judgement.
+
+A mismatch between the identifier in the brief and the identifier in the report is a configuration fault. Record
+it, and rerun a load-bearing unit on the mandated model rather than accepting it.
+
+## The default when no mandate exists
 
 **Leave the model unset unless there is a reason to force it.** The runtime resolves a per-agent-type preference,
 and overriding it changes the session's cost and behaviour profile. An orchestrator that overrides by habit is
@@ -49,9 +60,10 @@ common cause.
 Keep a short record per unit, because it is what makes the decision reviewable:
 
 ```text
-lane1   forced: <model1>   reason: <external requirement>
-lane2   default            -
-lane3   forced: <model2>   reason: needs long context for <document1>
+lane1   mandated: <identifier>   (project rule)
+lane2   mandated: <identifier>   (project rule)
+lane3   default                  -
+lane4   forced: <model2>          reason: needs long context for <document1>
 ```
 
 ## Escalating and de-escalating
