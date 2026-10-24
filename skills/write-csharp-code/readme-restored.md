@@ -164,7 +164,7 @@ Read configuration values into `private readonly` fields in the constructor, not
 
 ```csharp
 // CORRECT
-public class MyService(IConfiguration configuration, IHttpClientFactory httpClientFactory)
+public class MyService(Iconfiguration configuration, IHttpClientFactory httpClientFactory)
 {
     private readonly string _host = configuration["Service:Host"] ?? "127.0.0.1";
     private readonly int _port = int.Parse(configuration["Service:Port"] ?? "25");
