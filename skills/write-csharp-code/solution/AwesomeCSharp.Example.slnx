@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AwesomeCSharp.Example.Application/AwesomeCSharp.Example.Application.csproj" />
+    <Project Path="src/AwesomeCSharp.Example.Core/AwesomeCSharp.Example.Core.csproj" />
+    <Project Path="src/AwesomeCSharp.Example.Infrastructure/AwesomeCSharp.Example.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AwesomeCSharp.Example.Tests/AwesomeCSharp.Example.Tests.csproj" />
+  </Folder>
+</Solution>
