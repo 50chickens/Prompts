@@ -4,9 +4,10 @@ applyTo: '**/*.ps1'
 
 # PowerShell rules
 
-Iterate with the pipeline, not with the foreach statement.
+Iterate with the pipeline, not with the foreach statement. Banned is the `foreach (` keyword. Use `$collection |% { ... }`. A loop that must stop early or index positionally is the exception, and it says so on that line.
 
-Banned: the `foreach (` keyword in a .ps1 file.
-Use: `$collection |% { $someVariable = $_ ; Invoke-DoSomethingWithSomeVariable $someVariable }`
+A script sets `Set-Location $PSScriptRoot` itself and takes no parameters.
 
-A loop that must stop early or index positionally is the exception.
+Never use a `$PS*` variable except `$PSScriptRoot`.
+
+Detail: C:\git\internal\Prompts\patterns\powershell.md.

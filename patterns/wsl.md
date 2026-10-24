@@ -9,17 +9,13 @@ Work in WSL is written in PowerShell 7 whichever side starts it. This file cover
 | Windows host, PowerShell | the harness below runs the script in Ubuntu as the default user |
 | Inside the distribution, bash | invoke PowerShell explicitly: `pwsh -NoProfile -File /mnt/c/git/some/folder/script.ps1` |
 
-Paths a script uses come from Get-Configuration rather than from a function, because the same script is started from either side.
-
 ## Running a script
 
 All WSL work goes through the harness. Never hand-build a wsl.exe command line.
 
     & C:\git\internal\Prompts\patterns\examples\wsl\invoke-wsl.ps1 -Script /mnt/c/git/project1_linux/scripts/host/install-toolchain.ps1
 
-The harness takes the script path and nothing else. It resolves the newest registered Ubuntu, sets it as the default distribution when it is not already, and runs the script as that distribution's default user, with WSL_UTF8=1 so wsl.exe output arrives as text.
-
-There is no root switch and no argument passthrough: a script that needs to change behaviour reads its own configuration in Get-Configuration, and a real choice belongs in a ci.ps1 pipeline. Scripts that run in WSL are ordinary PowerShell, so the powershell patterns apply unchanged.
+The harness resolves the newest registered Ubuntu, sets it as the default distribution when it is not already, and runs the script as that distribution's default user, with WSL_UTF8=1 so wsl.exe output arrives as text.
 
 ## Resolving the distribution
 

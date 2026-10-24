@@ -4,7 +4,7 @@ Docker patterns.
 Dockerfile contstraints.
 
 We use a mix of COPY directives and volume mounts to get the container started. 
-Use COPY directives to add compiled/static content by build-test.ps1. look at the orchestration-scripts.md for how to do this.
+Use COPY directives to add compiled/static content by build-test.ps1. look at ci-scripts.md for how to do this.
 Tag any images created by invoke-docker.ps1. we should be removing only images created with that tag as part of invoke-docker.ps1. 
 The CMD directive should always be a single .ps1 file - eg /startup.ps1. 
 
@@ -19,13 +19,13 @@ When building a docker container containing assets of compiled binaries we shoul
 
 Application data storage.
 For the folder structure for building/running docker containers look in the folder-structure.md document.
-Use volume mounts to where data lives. see the orchestration-script.md and folder-structucture.md for how to do this.
+Use volume mounts to where data lives. see the ci-scripts.md and folder-structucture.md for how to do this.
 
 Application configuration.
 
 Any configuration files for application/packages that are installed from package sources (ie - not applications we add in) the configuration should follow these rules: 
 they should go into the /etc folder under their normal location. 
-The dockerfile should use a single COPY command to copy them to the location they need to go. see orchestration-script.md on where to put them to achieve this.
+The dockerfile should use a single COPY command to copy them to the location they need to go. see ci-scripts.md on where to put them to achieve this.
 Keep all of the configuration files from any of the additional sofware (eg postfix/httpd/supervisord) as close to the original as possible.
 
 Application configuration for environment variables. 

@@ -1,6 +1,6 @@
 # Avalonia patterns
 
-Rules here apply to Avalonia desktop applications and their tests. Language and general .NET rules live in [csharp.md](./csharp.md) and are not repeated here. Test-shape rules live in [c-sharp-testing.md](./c-sharp-testing.md).
+Rules here apply to Avalonia desktop applications and their tests. Language and general .NET rules live in [csharp.md](./csharp.md) and are not repeated here. Test-shape rules live in [csharp.md](./csharp.md).
 
 ## Threading
 

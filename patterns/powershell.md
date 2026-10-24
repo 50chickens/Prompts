@@ -1,7 +1,4 @@
-```
-description: Write high-quality, readable PowerShell scripts following these conventions
-
-# How to write good PowerShell scripts
+## PowerShell patterns.
 
 ## Banned patterns
 
@@ -23,41 +20,31 @@ description: Write high-quality, readable PowerShell scripts following these con
 
 | Banned | Reason | Use instead |
 |--------|---------|-------------|
-| try { } catch { return $false } | Converts exceptions into silent success-looking returns |
-| try { } catch { return $null } | Same – caller cannot distinguish success from failure |
-| -ErrorAction SilentlyContinue on writes/mutations | Silently swallows failures that must surface |
-| Get-Command guard before calling a required cmdlet | Hides missing-cmdlet errors; use `Invoke-PreflightCheck` instead |
-| if (-not $?) | Use `throw` – let `$ErrorActionPreference` propagate the failure |
-| `exit 1` (or any `exit` outside a top-level guard) | Terminates the whole process from inside a function, so later steps never run | `throw` – let `$ErrorActionPreference` propagate the failure |
-| try/catch blocks (except cleanup) | Masks failures; let errors surface naturally |
+| try { } catch { return $false } | Converts exceptions into silent success-looking returns | |
+| try { } catch { return $null } | Same - caller cannot distinguish success from failure | |
+| -ErrorAction SilentlyContinue on writes/mutations | Silently swallows failures that must surface | |
+| Get-Command guard before calling a required cmdlet | Hides missing-cmdlet errors; use `Invoke-PreflightCheck` instead | |
+| if (-not $?) | Use `throw` - let `$ErrorActionPreference` propagate the failure | |
+| `exit 1` (or any `exit` outside a top-level guard) | Terminates the whole process from inside a function, so later steps never run | `throw` - let `$ErrorActionPreference` propagate the failure |
+| try/catch blocks (except cleanup) | Masks failures; let errors surface naturally | |
 
 ### Control flow and structure
 
 | Banned | Reason | Use instead |
 |--------|---------|-------------|
-| foreach ($x in $list) | Use `$list | % { $x = $_ }` pipeline form |
-| if ($var -match ...) | For regex branching use `$var -replace` instead |
-| Magic strings inline functions | All come from `$configuration` |
-| Path arithmetic inside `Invoke-` functions | All come from `$configuration` |
-| Multiple inline conditionals | Use `switch` form |
+| Multiple inline conditionals | Use `switch` form | |
 | Backtick line continuation | Unreadable, and breaks on a trailing space | Splatting or string interpolation |
 | Nested functions | The inner copy shadows the outer function and cannot be called elsewhere | Keep functions flat; return early instead of nesting |
 | `if`/`elseif`/`else` chain testing unrelated conditions | Each branch is really a different named state | A `Get-*` function returning one state value via early exits, then `switch` on it |
 | `if`/`else` in the main execution block | Idempotency and gating belong inside the function that performs the step | A flat sequence of calls, each gated inside its own function |
-| Return twice -> Communication lost | Assign to variable, then return it |
-| Array index access `$array[i]` | Use `Select-Object -Index i` |
-| Script-level global variables | Use `Set-Variable -Scope Script` |
-| Inline scripts/executables | Place scripts in `assets` or `static` folders and execute them directly |
-| `Out-Null` | Do not use; pipeline form is default on Windows; or `-inotmatch` (explicit) |
-| `Set-Location` | Path risk; scripts must not change working directory; `Set-Location $PSScriptRoot` and adjust the `..\Init` depth. |
-| More than usage or appearance of $PSScriptRoot in the entire script. | In the script header we use `Set-Location $PSScriptRoot`. Any further usage is redundant. Relative paths can be used to resolve any folder locations after this. | use "..\somefolder\somefile.json" not (Get-Item "$PSScriptRoot\..\somefolder\somefile.json").FullName. 
+| Return twice -> Communication lost | Assign to variable, then return it | |
+| Array index access `$array[i]` | Use `Select-Object -Index i` | |
+| Script-level global variables | Use `Set-Variable -Scope Script` | |
+| Inline scripts/executables | Place scripts in `assets` or `static` folders and execute them directly | |
+| `Set-Location` | Path risk; scripts must not change working directory | `Set-Location $PSScriptRoot` and adjust the `..\Init` depth |
+| More than usage or appearance of $PSScriptRoot in the entire script | Any further usage is redundant | `"..\somefolder\somefile.json"`, not `(Get-Item "$PSScriptRoot\..\somefolder\somefile.json").FullName` |
+
 ### Parameters
-
-### variable construction/object interation.
-
-| Banned | Reason | Use instead |
-$scripts = @($configuration.BuildTestStageScript, $configuration.ApplicationTestsStageScript) | recombining objects onto a new object where they already exist on another object. 
-
 
 Runtime flags that select behaviour may be passed (e.g. `-resetadminpassword`). Configuration must not be passed between scripts.
 
@@ -65,58 +52,42 @@ Runtime flags that select behaviour may be passed (e.g. `-resetadminpassword`). 
 |--------|---------|-------------|
 | `param()` used to pass configuration from one script to another | Couples the callee to the caller, which must know the callee's config layout | `Get-Configuration` - each script independently loads its own configuration |
 | `-ConfigurationFolder` (or any config path) as a parameter | Where the config lives is a concern of the script, not the caller | `Get-Configuration`, which resolves its own config path |
-| Add-Member -NotePropertyName 'ApplicationTestsScript' -NotePropertyValue (Some-CalculatedValue $someVariable) -Force. | Calculated variables are another type of runtime variable and do not go into Get-Configuration. | Only pass $someValue to Add-Member. eg $configuration | Add-Member -Value $someValue. 
+| Add-Member with a calculated -NotePropertyValue (Some-CalculatedValue $someVariable) | Calculated values are runtime variables and do not go into Get-Configuration | Only pass $someValue to Add-Member |
+
 Accept only the parameters a script expects - for example a delete-stack script takes 0 or 1. Do not accept extra script-level parameters.
 
 ### .NET classes
 
 Prefer PowerShell-native equivalents. Only use .NET classes when there is no clean native alternative.
 
-| Banned | Reason | Use instead |
-|--------|---------|-------------|
-| [System.IO.Path]:: (most methods) | String interpolation, regex helpers |
-
-## .NET classes
-
-Prefer PowerShell-native equivalents. Only use .NET classes when there is no clean native alternative.
-
-.NET class | Prefer instead
-|---|---
-[System.IO.Path]::* (most methods) | String interpolation, `Get-Item`, regex helpers |
-[System.IO.File]::* | `Get-Content`, `Set-Content`, `Test-Path` |
-[System.IO.Directory]::* | `Get-ChildItem`, `New-Item -ItemType Directory`, `Test-Path` |
-[System.Uri]::* for filename extraction | Simple regex `([^/]+)$` |
+| .NET class | Prefer instead |
+|---|---|
+| [System.IO.Path]::* (most methods) | String interpolation, `Get-Item`, regex helpers |
+| [System.IO.File]::* | `Get-Content`, `Set-Content`, `Test-Path` |
+| [System.IO.Directory]::* | `Get-ChildItem`, `New-Item -ItemType Directory`, `Test-Path` |
+| [System.Uri]::* for filename extraction | Simple regex `([^/]+)$` |
 
 ## General rules
-* Don’t do wildcard/partial matches on resources. Check that you get the expected count of matches - eg 0 or 1. Fail/exit the script immediately upon error. This prevents actions on unintended resources.
+
+* Don't do wildcard/partial matches on resources. Check that you get the expected count of matches - eg 0 or 1. Fail/exit the script immediately upon error. This prevents actions on unintended resources.
 * Assume PowerShell 7 only unless told otherwise. No compatibility shims for PowerShell 5.
 * Only use ASCII characters in `.ps1` files. No em dashes, curly quotes, or non-ASCII characters.
 * Only adopt approved PowerShell style and function names.
 * Prefer PowerShell modules over command-line tools. If a suitable module does not exist, install it rather than shelling out.
-* Read the examples in the `examples` folder that sits alongside this document.
-* Use as few global or script-level variables as possible.
+* Read the examples in the `examples` folder beside this document.
 * Do not use `Select-Object`, `Select-String`, `head`, `tail`, `grep`, or shell redirections (`2>&1`), and do not pipe command output into filters - when running command lines and in `.ps1` scripts alike. Iterating collections with `|%` is still expected.
 * Keep logging minimal by default. `Write-Host` surfaces only information relevant to the task at hand. Extra detail should come from errors or from raising log verbosity.
 * Do not scan for invalid items, collect them into a list, and then report the problematic items.
 * Do not write files to disk for debugging purposes. Use a PowerShell transcript when you need a record of what happened.
 * Do not add comments unless specifically asked.
-* If a script parameter has a default function that always runs - call each step explicitly in the main execution block.
 * If a script parameter has a default value, add a short comment on that line explaining why it has a default.
-* Repeated statement sequences in the main execution block should be extracted into a helper function.
 * Do not add fallbacks, workarounds, or graceful error handling. It is ok if things fail.
 * Keep code lightweight and free of logic unrelated to the task at hand.
+* In PowerShell, a hex literal above int32::MaxValue parses as a negative int32, so 0xC4403D78 is not the value you wrote and comparisons against it silently match nothing. Write 0xC4403D78L. Treat any hex literal with the top bit set as needing the L suffix.
 
 ## Script structure
 
-Every script has this exact top-level structure, in order:
-
-1. Script-level preferences (`$ErrorActionPreference`, `$VerbosePreference`)
-2. Set location `$PSScriptRoot` - anchors working directory name if needed
-3. `$baseName = Split-Path -Leaf`
-4. Dot-source includes (if an includes folder exists)
-5. Main execution block at the bottom - a flat sequence of function calls
-
-Script-level variables and constants are defined at the top of the script, above the functions.
+Every script follows this top-level order: script-level preferences, `Set-Location $PSScriptRoot`, `$baseName`, dot-sourced includes, then the main execution block at the bottom as a flat sequence of function calls. Script-level variables and constants are defined at the top, above the functions.
 
 ```powershell
 $ErrorActionPreference = 'Stop'
@@ -139,8 +110,6 @@ Invoke-StepTwo $configuration
 
 Do not wrap the main execution block in a function or try/catch. Call each step explicitly so the execution path is transparent.
 
----
-
 ## Get-Configuration
 
 ```powershell
@@ -159,20 +128,19 @@ function Get-Configuration
 
 The `config` folder consumed by things under `src` is checked in; `ci` configuration is generally not checked in. `ci` and `src` therefore serve different purposes and keep separate configuration of the same shape.
 
+Do not verify a json config file in the terminal. A malformed file or a missing key fails inside the script that loads it through Get-Configuration, and that failure is the check.
+
 ### Configuration sources
 
-
-- Variables that are constants in the sense that they do not change for the entire period of the script execution, but are known before start script time. But these are variables the user is likely to change from run to run - eg Verbosity leve.  These go into Get-Configuration.
-- Variables that are unlikely to change from run to run - eg dotnet solution names. These go into a json file that is loaded by: $configuration = Get-Content $configPath | ConvertFrom-Json. 
-- Variables that are unknown at script start time - eg process id's, user profile folders. These go into Add-RuntimeConfiguration. If there are more than one category of runtime variables - 
 `$configuration` values come from `Get-Configuration` (static values, similar to constants) and `Add-RuntimeConfiguration` (values knowable only at runtime). Nothing else may add to `$configuration`.
-- Pass `$configuration` untyped.
-- Do not put script-level preference values (e.g. `VerbosePreference`) into `$configuration`.
-- Configuration JSON holds relative paths; do not resolve them with `Resolve-Path`, `Join-Path` or `$PSScriptRoot`.
-- When creating feature flags prefer SkipSomeOperation so that if the variable is missing - eg $configuration.SkipSomeOperation is missing it results to false and the operation would still run. We can then avoid adding unneccessary boilerplate to either the .json file or get-configuration.
-- If you notice that we have properties with similar purposes - eg folders but they are all individual property names evaluate if it's better to use a list of objects and iterate through those. prime examples are: $configuration.scriptfolder1, $configuration.scriptfolder2. This anti pattern should be refactored to a list with an enabled property. eg "scriptsToExecute": [{"enabled": true,"filePath": ".\\some-script.ps1"}]. this saves brittleness in the script if new requirements are added. 
 
-### Folder Path Configuration
+- Values known before start time that the user may change per run, eg verbosity, and values unlikely to change, eg solution names, go into the json file loaded by `Get-Content $configPath | ConvertFrom-Json`.
+- Values unknown at script start time, eg process ids and user profile folders, go into `Add-RuntimeConfiguration`.
+- Pass `$configuration` untyped. Do not put script-level preference values (e.g. `VerbosePreference`) into it.
+- Configuration JSON holds relative paths; do not resolve them with `Resolve-Path`, `Join-Path` or `$PSScriptRoot`.
+- Prefer a SkipSomeOperation flag, so a missing `$configuration.SkipSomeOperation` resolves to false and the operation still runs, with no boilerplate in the json file or `Get-Configuration`.
+
+### Folder path configuration
 
 ```powershell
 $bootstrapRoot = "$roleRoot\assets\remote\bootstrap"
@@ -192,8 +160,6 @@ function Add-RuntimeConfiguration($configuration)
 }
 ```
 
----
-
 ## Invoke-PreflightCheck
 
 Validates conditions required for the script to succeed. All essential validation lives here and nowhere else. Do not write defensive checks inside other functions.
@@ -209,71 +175,51 @@ function Invoke-PreflightCheck($configuration)
 ## Function rules
 
 Every function:
-- Takes exactly one parameter: `$configuration`. The only exception is helper functions not called from main execution block.
-- Has exactly one purpose. eg create new launch template version and apply it to an autoscale group are two seperate operatation. each of these operations should be a different function.
-- Function input should either from $configuration from Get-Configuration, or from a helper function where the input data is a runtime value. 
+- Takes exactly one parameter: `$configuration`. The only exception is helper functions not called from the main execution block.
+- Has exactly one purpose. Creating a launch template version and applying it to an autoscale group are two separate operations, so each is a different function.
+- Takes input either from `$configuration` or from a helper function where the input is a runtime value.
 - Logs the key value(s) it is working with.
 - Does not resolve paths, navigate directories, or do path arithmetic.
-- Don’t put control flow into Get-Configuration, Add-RuntimeConfiguration or Invoke-PreflightCheck.
-- Use Test-Should patterns for early exit.
-- When a later step needs a value produced by an earlier step (e.g. a resource Arn), put the identifier on `$configuration` so the later step can look it up. An extra read call is fine.
+- Uses `Test-Should` functions for early exit.
+
+Do not put control flow into `Get-Configuration`, `Add-RuntimeConfiguration` or `Invoke-PreflightCheck`.
+
+When a later step needs a value produced by an earlier step (e.g. a resource Arn), put the identifier on `$configuration` so the later step can look it up. An extra read call is fine.
 
 ```powershell
-function Invoke-CreateLaunchTemplateVersion($configuration)
-{
-    if (!(Test-ShouldCreateLaunchTemplateVersion $configuration))
-    {
-        $launchTemplateVersion = #get launchtemplate version to be used.     
-        return
-    }
-    $launchTemplateVersion = #code to create launch template version here. 
-    return $launchTemplateVersion
-    # do the step
-}
-function Invoke-UpdateAutoscaleGroupLaunchTemplate($autoscaleGroup, $launchTemplateVersion)
-{
-    if (!(Test-ShouldUpdateAutoscaleGroupVersion $autoscaleGroup, $launchTemplateVersion))
-    {
-        return
-    }
-    #code to update autoscale group here. 
-    # do the step
-    return
-}
 function Invoke-UpdateAutoscaleGroup($configuration)
 {
-    $autoscaleGroup = #code to get autoscale group here. 
+    if (!(Test-ShouldUpdateAutoscaleGroup $configuration))
+    {
+        return
+    }
+    $autoscaleGroup = #code to get autoscale group here.
     $launchTemplateVersion = Invoke-CreateLaunchTemplateVersion $configuration
     Invoke-UpdateAutoscaleGroupLaunchTemplate $autoscaleGroup $launchTemplateVersion
 }
 ```
 
-### variable access guidelines
+## Variable access
 
-If a list of objects to iterate through is required put them into a list of objects with an enabled property - eg 
+When a list of objects is required, put them in json as a list of objects with an enabled property rather than as separate property names.
 
 ```powershell
-
 "scriptsToExecute": [{
     "enabled": true,
     "filePath": ".\\some-script.ps1"
   }]
 
-  then use 
-  $scriptsToExecute = $configuration.ScriptsToExecute
-  $scriptsToExecute |? { $_.Enabled} | %{
-    #execute script here. 
-  }
-
-  do not do - $scripts = @($configuration.BuildTestStageScript, $configuration.ApplicationTestsStageScript). this is a needless & wasteful round trip of objects and creates a fragile json structure. 
-  
+$scriptsToExecute = $configuration.ScriptsToExecute
+$scriptsToExecute |? { $_.Enabled } |% {
+    #execute script here.
+}
 ```
 
-### `exit` vs `return` in functions
+Do not do `$scripts = @($configuration.BuildTestStageScript, $configuration.ApplicationTestsStageScript)`. It is a needless round trip of objects and creates a fragile json structure.
 
-`exit` terminates the **entire PowerShell process** — not just the function. Only valid inside top-level guard functions.
+## exit vs return
 
-Inside all other functions, use `return`.
+`exit` terminates the entire PowerShell process - not just the function. Only valid inside top-level guard functions. Inside all other functions, use `return`.
 
 ```powershell
 function Invoke-CheckEnabled($configuration)
@@ -283,74 +229,24 @@ function Invoke-CheckEnabled($configuration)
 }
 ```
 
-```powershell
-function Test-ShouldUpdateBinding($configuration)
-{
-    $currentBinding = Get-CurrentBinding $configuration
-    if ($currentBinding -eq $configuration.RequiredBinding)
-    {
-        Write-Log "Binding is already correct. Skipping update."
-        return $false
-    }
-    return $true
-}
-```
-
-```powershell
-function Invoke-UpdateBinding($configuration)
-{
-    if (-not (Test-ShouldUpdateBinding $configuration))
-    {
-        return
-    }
-    # perform update
-}
-```
-
----
-
 ## Output suppression
 
 Never use `| Out-Null`. Use `$null = ...`.
 
-```
+```powershell
 $null = New-Item -ItemType Directory -Path $dir
 $null = docker rm -f $name
 ```
 
-## Variable evaluation
+## Path construction
 
-```powershell
-function Invoke-CheckEnabled
-{
-    $flag = $false
-    if ([string]::IsNullOrEmpty($env:EnableFlag))
-    {
-        Write-Log "Not enabled (EnableFlag is null or empty)."
-        return $false
-    }
-    if (![bool]::TryParse($env:EnableFlag, [ref]$result))
-    {
-        Write-Log "Not enabled (EnableFlag is not a valid boolean)."
-        return $false
-    }
-    return $result
-}
-```
-
-All path construction inside functions uses string interpolation.
-
-```powershell
-$outputDir = "${configuration.BootstrapRoot}\${packageList.outputDir}"
-$destFile = "$outputDir\$moduleName.nupkg"
-```
-
-Build paths stepwise:
+All path construction inside functions uses string interpolation, built stepwise.
 
 ```powershell
 $bootstrapRoot = "$roleRoot\assets\remote\bootstrap"
 $packageDir = "$bootstrapRoot\packages"
 $moduleDir = "$packageDir\$moduleName\$version"
+$destFile = "$moduleDir\$moduleName.nupkg"
 ```
 
 Filename from URL:
@@ -363,11 +259,9 @@ function Get-FilenameFromUrl($url)
 }
 ```
 
----
-
 ## Iteration and conditionals
 
-Use `|%` for iteration:
+Iterate with the pipeline, not the foreach statement. Banned is the `foreach (` keyword. Use `$collection |% { ... }`. A loop that must stop early or index positionally is the exception.
 
 ```powershell
 $packages |% {
@@ -386,9 +280,7 @@ $files |? { $_.Extension -eq '.pfx' } |% {
 }
 ```
 
-Use `switch -Regex` instead of `if ($x -match ...)`.
-
-When iterating output that only exists at runtime (e.g. `netsh http show urlacl`), capture it first, then match with `switch -Regex`:
+Use `switch -Regex` instead of `if ($x -match ...)`. When iterating output that only exists at runtime (e.g. `netsh http show urlacl`), capture it first, then match with `switch -Regex`:
 
 ```powershell
 $urlAcls = netsh http show urlacl
@@ -399,12 +291,9 @@ switch -Regex ($line)
 }
 ```
 
----
-
 ## Grouping repeated near-identical statements
 
 When the same statement shape appears more than twice with only a name or value changing (validation checks, tag lookups, find/replace rules), loop over an array of names or `[pscustomobject]` rules instead of hand-writing one `if`/`throw` per value.
-
 ```powershell
 function Invoke-PreflightCheck($configuration)
 {
@@ -419,11 +308,9 @@ function Invoke-PreflightCheck($configuration)
 
 The same applies to replacements - build `[pscustomobject]@{ ReplaceFrom = ...; ReplaceTo = ... }` rules and iterate, checking idempotency before each replacement.
 
----
-
 ## Per-item detail objects in loops
 
-When a loop body needs several derived values per item, derive them once into a single `[pscustomobject]` from a dedicated `Get-*Details` function, then pass that object through the `Invoke-` steps. Do not re-derive the same value in each step, and do not leak the values into implicit shared scope.
+When a loop body needs several derived values per item, derive them once into a single `[pscustomobject]` from a dedicated `Get-*Details` function and pass that object through the `Invoke-` steps. Do not re-derive the same value in each step, and do not leak the values into implicit shared scope.
 
 ```powershell
 function Get-PackageDetails($configuration, $package)
@@ -446,9 +333,7 @@ function Invoke-InstallPackages($configuration)
 }
 ```
 
-Assign every value the loop body uses to a local variable first. A mistyped property name inside a template string resolves to `$null` silently, and an unqualified name silently reads the outer scope, so check each property name against the object definition.
-
----
+Assign every value the loop body uses to a local variable first. A mistyped property in a template string resolves to `$null` silently and an unqualified name reads the outer scope, so check each property name against the object definition.
 
 ## Test-Should pattern
 
@@ -464,8 +349,6 @@ function Test-ShouldUpdateBinding($configuration)
     return $true
 }
 ```
-
----
 
 ## Wait/retry pattern
 
@@ -491,7 +374,7 @@ function Wait-UntilDeploymentComplete($configuration)
 
 ## Logging
 
-Use `Write-Log` for all output. See also the logging pattern in `component_prompts/solutions/ipscm/skils.md`.
+Use `Write-Log` for all output.
 
 ```powershell
 function Invoke-UploadPackage($configuration)
@@ -504,8 +387,6 @@ function Invoke-UploadPackage($configuration)
 }
 ```
 
----
-
 ## Constants and magic strings
 
 Values used more than once belong in `Get-Configuration`.
@@ -515,15 +396,13 @@ $configuration | Add-Member -NotePropertyName 'CertStore' -NotePropertyValue 'Ce
 $configuration | Add-Member -NotePropertyName 'BindingPort' -NotePropertyValue '0.0.0.0:443' -Force
 ```
 
----
-
 ## IMDSv2 pattern (AWS instance metadata)
 
 ```powershell
 function Get-ImdsToken {
     return Invoke-RestMethod -Uri 'http://169.254.169.254/latest/api/token' `
         -Method PUT `
-        -Headers @{ 'X-aws-ec2-metadata-token-ttl-seconds' = '21600' }
+        -Headers @{ 'X-aws-ec2-metadata-token-ttl-seconds' = '21600' } `
         -TimeoutSec 5
 }
 
@@ -535,19 +414,14 @@ function Get-ImdsValue ([string]$path)
         -Headers @{ 'x-aws-ec2-metadata-token' = $token } `
         -TimeoutSec 5
 }
-```
 
-Usage:
-```
 $instanceId = Get-ImdsValue 'instance-id'
 $region = Get-ImdsValue 'placement/region'
 ```
 
----
-
 ## External process exit codes
 
-PowerShell does **not** throw on non-zero `$LASTEXITCODE`.
+PowerShell does not throw on non-zero `$LASTEXITCODE`.
 
 ```powershell
 docker build -t $imageName $contextDir
@@ -562,46 +436,18 @@ $PSNativeCommandUseErrorActionPreference = $true
 
 Do not use this on earlier PS versions.
 
----
-
-## Do not guard against deployment preconditions
+## Deployment preconditions
 
 Only guard state that is genuinely unknown when the script runs - whether a binding is already configured, whether a service is running, whether a certificate is present.
 
-Do not add `if`/`throw` guards for what the deployment pipeline guarantees:
-
-- a package folder exists - it is pre-deployed before the script runs
-- a config file exists - it is present on a server built by the pipeline
-- an installer exists inside an extracted package - true when the package version is correct
-- web or machine config exists - pre-deployed
-
-Those guards test deployment correctness at runtime and fail with a message that hides the real cause. Let the next line throw with the real path instead.
+Do not add `if`/`throw` guards for what the deployment pipeline guarantees: a package folder exists, a config file exists on a pipeline-built server, an installer exists inside an extracted package, web or machine config is pre-deployed. Those guards test deployment correctness at runtime and fail with a message that hides the real cause. Let the next line throw with the real path instead.
 
 The same rule removes dead branches: when every entry in a config collection supplies a property, do not add an `else` branch for the absent case.
 
-```powershell
-# BANNED - the else branch is dead, every package has Executable set
-if ($package.Executable) { $executablePath = "$extractDir\$($package.Executable)" }
-else {
-    # fallback that can never run
-}
-
-# CORRECT
-$executablePath = "$extractDir\$($package.Executable)"
-```
-
----
-
 ## Execution context
 
-This document is about the script. Where a command has to cross into another operating system, that boundary has its own document - see [wsl.md](./wsl.md) for which side you are on, the harness that runs an authored script as root in the distribution, the path forms each side needs, and the line-ending rule for a script executed through a shebang.
+A command that crosses into another operating system is covered by [wsl.md](./wsl.md).
 
 ## Choosing the weight of the tool
 
-- Heavy lifting: PowerShell first. If the algorithm genuinely belongs in a typed library or PowerShell is measurably too slow, use a .NET package from NuGet, or C# for the hot path. A single file runs with no project and leaves no bin or obj in a source folder:
-
-  ```powershell
-  dotnet run measure.cs
-  ```
-
-- The languages that are never the answer, and the rule that a question answerable by a read is delegated rather than scripted, are stated once in [terminal.instructions.md](../.github/instructions/terminal.instructions.md).
+PowerShell first. If the algorithm belongs in a typed library or PowerShell is measurably too slow, use a .NET package from NuGet, or C# for the hot path. `dotnet run measure.cs` runs a single file with no project and leaves no bin or obj in a source folder.

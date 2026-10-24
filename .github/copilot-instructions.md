@@ -1,12 +1,8 @@
 # Copilot instructions
 
-use agents.md and the terminal instruction file in the repo where you found this instruction file - not the workspace but the repo.
+Follow these on every request, taken from the repository this file was found in rather than from the workspace:
 
-Include both files as part of every request automatically, and do not re-read them on each request.
+- [agents.md](../agents.md) - standing rules, and where every other file's content is declared
+- [terminal.instructions.md](instructions/terminal.instructions.md) - command rules
 
-- [agents.md](../agents.md)
-- [terminal.instructions.md](instructions/terminal.instructions.md)
-
-## Reuse before building
-
-Read [TOOLS.md](../TOOLS.md) before writing a script, tool, module or instruction file. Every subagent brief names the TOOLS.md entries its lane uses, or states that none exist.
+Content placement: [file-content-recommendations.md](../file-content-recommendations.md). Tools: [TOOLS.md](../TOOLS.md).

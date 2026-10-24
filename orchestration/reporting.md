@@ -1,74 +1,60 @@
 # Reporting
 
-A lane's report is the only durable thing it produces. Code can be re-read, but the reasoning that led to it
-cannot be recovered from the code, and it is the reasoning the next unit needs.
+A lane's report is the only durable thing it produces: the code can be re-read, but the reasoning that led to it cannot be recovered.
 
-## Write as you go, not at the end
+Create the report file within the first few tool calls, before the first finding, and update it after every measurement rather than after every milestone. Append a section the moment a fact is established, mark a theory as a theory, record what you checked and found nothing, and date or mark the state of each claim.
 
-This is the single most important reporting rule, and it has a measured payoff: several units in a long project
-have been terminated mid-investigation and the ones with incremental reports cost nothing to resume, while the
-ones without cost their entire budget.
-
-Practical form:
-
-- **Create the report file within the first few tool calls, as a stub.** Not after the first finding - first.
-  A unit whose report file does not exist yet is a unit at risk, and this single rule has repeatedly turned a
-  total loss into minutes lost. Units are cancelled mid-run by the environment, sometimes in batches.
-- **Update it after every measurement**, not after every milestone.
-- **Append a section the moment a fact is established.** Not a summary at the end.
-- **Write theories as theories.** Maturity is expensive to wait for and worthless if the unit dies first.
-- **Mark clearly which statements are established and which are suspected.** A theory nobody can distinguish
-  from a finding is worse than no theory.
-- **Record what you checked and found nothing.** A bounded negative result stops the next unit repeating it.
-- **Date or mark the state of each claim**, because a report's facts go stale exactly as a document's do.
-
-## The report skeleton
+## The skeleton
 
 ```markdown
 # <lane name>
 
 ## State
-<one line: what this lane has established so far, updated in place>
+<One line, updated in place, saying what this lane has established so far. A reader who stops here should know
+whether the lane is done.>
 
 ## Established
-- <fact>. <how it was established>. <source>.
+- <Fact>. <How it was established>. <Source, cited precisely enough to be found, with the date if it names a
+  moving quantity>.
 
 ## Theories
-- <theory>. <what would confirm or refute it>.
+- <Theory, marked as a theory>. <What would confirm or refute it>.
 
 ## Measurements
 | subject | before | after | unit |
 |---------|--------|-------|------|
+| <subject> | <value> | <value> | <unit> |
+
+## Prediction refuted
+<Only if this brief's stated expectation was contradicted: what was expected, what was measured, where, and
+what it changes.>
+
+## Defects found, including my own
+- <What was claimed>. <What is true>. <How I know>. <What I did about it>.
 
 ## Could not determine
-- <question>. <why it is unresolved>.
+- <Question>. <Why it is unresolved, and what would settle it>.
 
 ## Negative results
-- <what was looked for>. <where>. <what was found instead>.
+- <What was looked for>. <Where>. <What was found instead>.
+
+## Cost
+wall clock:  <duration per distinct kind of run>
+long runs:   <how many, and what each was for>
+iterations:  <cheap iterations vs expensive confirmations>
 ```
 
-## What belongs in a report
+`State` is the only part a reader is guaranteed to see, so it stays one line. `Measurements` is a table because prose hides the deltas.
 
-- **Numbers with units.** "Executed 88 instructions" beats "ran a little further".
-- **The command or method used**, so the measurement is reproducible.
-- **The primary source for every claim that rests on a document**, cited precisely enough to be found.
-- **The names of files and symbols touched**, so a reviewer knows where to look.
-- **Before and after values**, for any change, including for the things that were supposed to stay the same.
-- **A named new state** wherever a change moves a boundary - the new stop, the new count, the new address. A
-  boundary described as "moved" cannot be pinned by whoever follows.
+## What belongs, and what does not
 
-## What does not belong
+Numbers with units ("executed 88 instructions", not "ran a little further"); the command or method used; the primary source for every claim resting on a document; the files and symbols touched; before and after values for any change, including the things supposed to stay the same; and a named new state wherever a change moves a boundary.
 
-- A restatement of the brief.
-- Prose that describes activity rather than outcome.
-- Confidence without a basis. If you are unsure, say what would settle it.
-- A conclusion whose supporting measurement was not taken. Say it as a suspicion instead.
-- Anything you cannot source.
+Not: a restatement of the brief, prose describing activity rather than outcome, confidence without a basis, a conclusion whose supporting measurement was not taken, or anything you cannot source.
 
-## Reporting a refuted prediction
+## Disagreement, refutation and your own defects
 
-If the brief stated an expectation and the measurement contradicts it, **report the refutation prominently**.
-This is a good outcome and should be written as one:
+A refuted prediction is reported prominently, because a lane that quietly works around one has wasted the correction:
 
 ```markdown
 ## Prediction refuted
@@ -77,52 +63,59 @@ The brief expected <X>. Measured <Y>, at <where>, with <how>. So the expected va
 <the two ways>. What this changes: <the next question>.
 ```
 
-A lane that quietly works around a wrong prediction has wasted the correction, and the next brief will repeat
-the error.
+A disagreement with the brief gets the same treatment: what the brief said, what is true, and the evidence. A defect you caused likewise: what you changed, what it broke, how you found out, and what you did, correcting your own earlier claims explicitly rather than editing them quietly.
 
-## Reporting a disagreement with the brief
+When something in the shared tree is broken, do not adopt it and do not hide it: say it is yours and fix it, or say it is not with a reproduction, a timestamp and a file outside your ownership list, and name the likely owner. Never absorb a wrong attribution.
 
-Same treatment. State what the brief said, what is true, and the evidence. Do not silently do something else.
+Every unit has exactly one report file and one owner. Disagreement with a document is recorded as a new section naming the file disagreed with, never by editing it: the report is where you disagree, and the orchestrator applies the change.
 
-## Reporting a defect you caused
+## Judging a report
 
-Also the same treatment, and it should be routine rather than embarrassing:
+1. **Is the deliverable present at the path the brief named?** If not, the report describes intentions rather than work.
+2. **Does every claim carry a source, and does the source say what the claim says?** Spot-check one load-bearing claim by opening the cited text: the headline is usually right and the supporting statement is where a claim breaks.
+3. **Does the report state what it could not determine?** A report with no gaps is more likely to be overclaiming than complete.
 
-- **Say what you changed, what it broke, and how you found out.**
-- **Say what you did about it** - reverted, fixed, or left for the owner of the affected file.
-- **Correct your own earlier claims explicitly** rather than editing them quietly. A report that says "an
-  earlier section of this report said nothing had moved; that was wrong because the filter excluded the suite
-  that moved" is far more useful than one that is silently consistent.
+Ask for a rate, not a verdict: "11 of 13 cases, field-exact, control accepted both orders" can be attacked and compared, while "looks correct" cannot. A unit reporting "124 units processed" has reported a number, not an advance: ask for the identity of the thing that stopped it, and read the number second. Check chance floors arithmetically, and check a report against itself, since a summary contradicting the table below it is a cheap defect to find.
 
-## Distinguishing your breakage from someone else's
+## The validation batch
 
-When something in the shared tree is broken, do not adopt it and do not hide it:
+A periodic unit whose only job is to attack finished work. Its brief says that returning nothing is a result but a lazy one, and it has a budget for a few items rather than all of them, prioritising claims other work already depends on. It writes findings as it establishes them. Each batch leaves the number of claims checked, confirmed, contradicted and undetermined, plus each defect with the file, what was claimed, what is true, and the source used to decide.
 
-- **If it is yours**, say so and fix it.
-- **If it is not yours**, say so with the evidence - a reproduction, a timestamp, a file that is not in your
-  ownership list - and name the likely owner.
-- **Never absorb a wrong attribution.** A workstream that quietly takes the blame for another's breakage hides
-  a real defect and misleads the orchestrator about what is stable.
+| Class | How it is caught |
+|-------|------------------|
+| **Stale fact** - a value a later change moved | Compare against the tree, not memory |
+| **Wrong source** - a citation that does not contain the claim | Open the cited document at the cited page |
+| **Backwards claim** - a source said to say the opposite | Read the source, not a summary |
+| **Test that cannot fail** - an assertion true for any input | Ask what change would break it |
+| **Unmeasured pass** - an absent record scored as satisfied | Check what a missing input scores as |
+| **Wrong attribution** - work attributed to the wrong file | Find the real location |
+| **Missing sibling** - a class of fix applied to one site | Search for the pattern elsewhere |
+| **Duplicate truth** - two copies of one fact that can drift | Check that a fact lives in one place |
 
-## One findings file, one owner
+## Trust but verify, then reconcile
 
-**Every unit has exactly one report file, and exactly one owner.** Disagreement with a document is recorded as a
-new section that names the file disagreed with - never by editing it. This keeps a load-bearing document
-load-bearing: a passer-by that "fixes" one while passing through is how a document gets corrupted, and it is
-also how two units lose each other's changes.
+What transfers from an external artefact is coverage; what must be earned locally is correctness, so measure agreement on cases whose correct answer is established independently and give it inputs that should be rejected to look for over-acceptance. Where it and the project disagree, establish the truth from the primary source, fix the wrong side including the project's own, and never average the two positions. If the fix lands in a file the lane does not own, the lane names the file.
 
-Practically: the report is where you disagree, and the orchestrator is who applies the change.
+## The fixture is not evidence
 
-## Costs, reported honestly
+A change that breaks an existing expectation is not made right by reverting it: the expectation was authored to match the implementation, so it says nothing about which side is wrong. Establish which is right from an independent source, fix the wrong side, and when a change must alter many expectations prefer a semantic helper over edited literals.
 
-A report should say what the work cost, because that is what makes the next estimate possible:
+## Measurement
+
+Every investigation has a cheap iterator - a probe, a static walk, a decode over a region, a query - and an expensive confirmation - a full run, a long build, a whole suite. **The mistake is using the expensive instrument to find the next question**: the brief answers how many iterations this takes and which instrument each needs.
+
+Before implementing a list of things, establish how many there are, whether it is ordered and by what, and whether it is still valid. Confirming a milestone is the one thing worth an expensive run: price it with the expected count, wall clock and memory, take it once, and record what it bought.
+
+Cost is a design input: a per-operation log record that allocates and formats text, allocation per step, and boxing in a hot path can change cost by an order of magnitude. Prove a performance change preserved behaviour with an **output hash identical across builds**, because a passing suite cannot show it.
 
 ```text
-wall clock:  <duration per distinct kind of run>
-long runs:   <how many, and what each was for>
-iterations:  <cheap iterations vs expensive confirmations>
+per unit of work:  time, allocation, and the thing that dominates it
+per full run:      wall clock, peak memory, and the count of units processed
+per iteration:     the number of iterations a fix needs before it is confirmed
 ```
 
-This is how an orchestrator learns which investigation method is worth funding. A method that confirms a
-promise in seconds is worth far more than one that confirms it in half an hour, and only the lane sees the
-difference.
+Every negative needs a positive control in the same run, because "nothing was found" is evidence only if the same instrument finds something where something is known to be. Count against the documentation and name any disagreement. Report the cost of the dominant loop, and never report a zero where a value was not observed. Count units rather than timing them, prefer the deterministic instrument, and report which instrument produced a number.
+
+## Probes
+
+Do not commit a diagnostic probe. A test whose body exists to print a value is deleted once it has printed, because a probe left in the suite fails every other lane's run and reports as somebody else's defect. When a probe's output is the evidence, quote it in the report and remove the probe in the same unit.
