@@ -1,85 +1,57 @@
 WSL patterns.
 
-WSL may or may not be the default terminal, so establish which side of the boundary you are on before choosing a command form. When the host shell is PowerShell, Linux work is started deliberately from there with the harness below. When the distribution is the default terminal the host shell is bash, so quoting and path separators are bash's and `/mnt/c/...` is the form that resolves. Either way the work is written in PowerShell, and this file describes how it reaches Linux.
-
-Do not assume a version or a registered name. Resolve the distribution by matching its registered name against the pattern `^Ubuntu`, so any Ubuntu version is found rather than one exact string. Take the highest version when several match, and fail loudly when none does.
-
-    $previous = $env:WSL_UTF8
-    $env:WSL_UTF8 = 1
-    $names = @(wsl --list --quiet)
-    $env:WSL_UTF8 = $previous
-    $candidates = @($names | Where-Object { $_ -match '^Ubuntu' })
-    if ($candidates.Count -eq 0) { throw "No distribution matching '^Ubuntu' is installed: $($names -join ', ')" }
-    $distro = $candidates | Sort-Object { if ($_ -match '(\d+(\.\d+)*)') { [version]$matches[1] } else { [version]'0.0' } } -Descending | Select-Object -First 1
-
-Pass that resolved name to `-Distro`. A literal such as `Ubuntu`, `Ubuntu-20.04` or `Ubuntu-26.04` fails as a missing distribution the moment the host registers a different name, and the message does not mention versions.
-
-The tooling still requires Ubuntu 24.04 or newer and rejects older releases as unsupported_host, so apply the version floor after the match rather than encoding it in the name.
-
-The execution flag is lowercase -e. This wsl.exe rejects -E with "Invalid command line argument: -E".
+Work in WSL is written in PowerShell 7 whichever side starts it. This file covers how it is started from a Windows orchestrator, and how it is reached when the distribution is the terminal.
 
 ## Which side you are on
 
-| Context | Shell you are typing into | How work reaches Linux |
-|---------|---------------------------|------------------------|
-| Windows host | PowerShell | the harness below runs an authored script as root |
-| Inside the distribution (the distribution is the default terminal) | bash | you are already there, and `/mnt/c/...` paths resolve |
+| Context | How work reaches Linux |
+|---------|------------------------|
+| Windows host, PowerShell | the harness below runs the script in Ubuntu as the default user |
+| Inside the distribution, bash | invoke PowerShell explicitly: `pwsh -NoProfile -File /mnt/c/git/some/folder/script.ps1` |
 
-The context changes how a script is invoked, never what it is written in. From inside the distribution that means reaching PowerShell explicitly:
+Paths a script uses come from Get-Configuration rather than from a function, because the same script is started from either side.
 
-    pwsh -NoProfile -File /mnt/c/git/some/folder/script.ps1
+## Running a script
 
-A script authored on one side does not run unchanged on the other unless the paths it uses come from `Get-Configuration`, which is the reason path resolution belongs there rather than in a function.
-
-## Running anything in WSL
-
-All WSL work goes through the execution harness, never a hand-built wsl.exe command line:
+All WSL work goes through the harness. Never hand-build a wsl.exe command line.
 
     & C:\git\internal\Prompts\patterns\examples\wsl\invoke-wsl.ps1 -Script /mnt/c/git/project1_linux/scripts/host/install-toolchain.ps1
 
-The harness takes the script path and, when the distribution matters, `-Distro <resolved name>`, and runs the script as root, because these scripts configure the machine. It is not optional in practice: the default distribution can be older than the tooling supports, so a step that needs a supported one resolves the name as above and passes it. It holds the things that are easy to get wrong: the distribution, the root user, UTF-8 output from wsl.exe, and the mount check below.
+The harness takes the script path and nothing else. It resolves the newest registered Ubuntu, sets it as the default distribution when it is not already, and runs the script as that distribution's default user, with WSL_UTF8=1 so wsl.exe output arrives as text.
 
-There are no script arguments and no root switch. A script that needs to change behaviour reads that from its own configuration file in Get-Configuration, and a real choice belongs in a ci.ps1 pipeline rather than on the harness command line. Scripts that run in WSL are otherwise ordinary PowerShell scripts, so the powershell patterns and the orchestration-script pattern apply to them unchanged.
+There is no root switch and no argument passthrough: a script that needs to change behaviour reads its own configuration in Get-Configuration, and a real choice belongs in a ci.ps1 pipeline. Scripts that run in WSL are ordinary PowerShell, so the powershell patterns apply unchanged.
 
-## The mount owner
+## Resolving the distribution
 
-Nothing in WSL fails as confusingly as a root-owned /mnt. WSL usually mounts /mnt with the uid of the distribution's default user, but a distribution can be left with a root-owned mount, and then every chmod and utime fails with EPERM for every non-root user. The symptoms name the wrong cause: git clone reports "could not set 'core.filemode' to 'false'", checkout and npm fail, and MSBuild reports "The last access/last write time on file ... cannot be set". Check the owner before believing any of those messages:
+Never pass a literal name. Match the registered name against `^Ubuntu`, compare the captured version numerically, take the highest and throw when nothing matches; Get-LatestDistro in invoke-wsl.ps1 does exactly this. A literal fails as a missing distribution the moment the host registers another name, and the message does not mention versions.
+
+The default distribution is inherited from whatever was last registered or set. On a machine with Docker Desktop it is docker-desktop, which has no /mnt/c mount, so a run against it fails with `stat: can't stat '/mnt/c': No such file or directory`. Resolving the name is what avoids that.
+
+The tooling needs Ubuntu 24.04 or newer, so apply the version floor after the match rather than in the name. The execution flag is lowercase `-e`; this wsl.exe rejects `-E`.
+
+## Repairing the mount
+
+A root-owned /mnt breaks every chmod and utime for the non-root user. The symptoms name something else: git clone reports "could not set 'core.filemode' to 'false'", checkout and npm fail, MSBuild cannot set a file time. Check before believing them:
 
     wsl -d $distro -e stat -c %u /mnt/c
 
-It must print 1000. The harness restarts the distribution when it does not, and if a restart does not repair it, wsl --shutdown does. Restarting the distribution is cheap; rebuilding the installation is not, so do not solve this by reinstalling.
+It must print 1000. Run Invoke-Repair-wsl.ps1 beside the harness; it restarts the distribution only when the uid is wrong, and wsl --shutdown is the fallback. Do not reinstall.
 
 ## Layout
 
-Everything written for this work lives on the Windows drive under the project folder, because the distribution is disposable and its home directory goes with it. Only the installed toolchains stay inside the distribution and they are regenerated by the install script. Scripts are authored from the Windows host into that tree; nothing is created inside the distribution.
+Everything written for this work lives under the project folder on /mnt/c, because the distribution is disposable and its home directory goes with it; only the installed toolchain stays inside the distribution.
 
-    project1_linux/repos       cloned repositories
-    project1_linux/languages   the emitted language files and the compiled form
-    project1_linux/home        HOME for this work, so Tool1 config and build-tool caches land on the Windows drive
-    project1_linux/work        scratch: Tool1 smoke projects, Tool2 snapshots
+    project1_linux/repos
+    project1_linux/languages
+    project1_linux/home
+    project1_linux/work
 
-Build tools work from that layout with no extra configuration, because they keep their cache under HOME.
- A .NET build passes --artifacts-path into that tree so its obj directory does not land inside the source repository, which the Windows build also uses.
-## Scripts
-
-The only bash script is install-powershell.sh, which installs PowerShell 7 and the libicu it needs. It cannot be PowerShell for the obvious reason. Everything after it is PowerShell.
-
-install-toolchain.ps1 does the rest of the configuration: the packages, the JDK the tool declares, the .NET SDK, the runtime the tool requires, the command links, the environment file, the Tool2 shim, the clones, the Tool1 extension build, the emitted language, the Tool2 CLI install, and then the verification of all of it. It is safe to re-run.
-
-Only PowerShell and .NET belong in WSL. Do not install Python, Rust, Go or Ruby there. The extra runtime is present because Tool2 requires it, not as a general purpose runtime.
-
-## Version requirements
-
-Tool2 needs Tool1 12.1.x with the JDK that installation declares, which for 12.1.4 is JDK 21 with no maximum. The Tool1 build used here is the extracted release shared with the Windows host, reached over /mnt/c, so one installation serves both hosts. Its native decompiler for linux_x86_64 has to be present, and the official release has it.
+HOME points into that tree so build-tool caches land on the Windows drive, and a .NET build passes --artifacts-path into it so obj does not land in the source repository. Only PowerShell 7 and .NET are installed: do not install Python, Rust, Go or Ruby, and do not assume them.
 
 ## Writing the command line
 
-Do not build WSL command lines by hand during a session. Two traps are worth knowing. PowerShell expands $variables inside double quotes before wsl.exe sees them, so wsl -e bash -c "echo $HOME" arrives with the value already substituted by PowerShell and not by bash. And wsl.exe writes UTF-16, so its output renders as spaced out characters unless $env:WSL_UTF8=1 is set in the same command. Put multi-step work into a script and run it through the harness.
+Two traps, both avoided by the harness. PowerShell expands $variables inside double quotes before wsl.exe sees them, so `wsl -e bash -c "echo $HOME"` carries the Windows value. wsl.exe writes UTF-16, so output needs $env:WSL_UTF8=1 in the same command. Multi-step work belongs in a script run through the harness.
 
 ## Line endings
 
-A script executed through its shebang must have LF line endings. With CRLF the kernel looks for an interpreter whose name ends in a carriage return and reports "No such file or directory", which reads like a missing interpreter. file(1) separates the two cases: "a /usr/bin/env pwsh script" is usable, "with CRLF line terminators" is not. core.autocrlf is true in this repository, so a fresh clone writes CRLF and a .gitattributes rule (*.ps1 -text) is needed if such a script has to survive a checkout. PowerShell and C# themselves do not care about line endings; only the shebang path does.
-
-## .NET
-
-The SDK is .NET 10, which compiles and runs a single .cs file with no project, so dotnet run file.cs is a usable smoke test with no bin or obj left behind in the source folder.
+A script started through its shebang must be LF. With CRLF the kernel looks for an interpreter whose name ends in a carriage return and reports "No such file or directory", which reads as a missing interpreter. `file` separates the cases: "a /usr/bin/env pwsh script" is usable, "with CRLF line terminators" is not. core.autocrlf is true in this repository, so a fresh checkout writes CRLF and such a script needs a `*.ps1 -text` rule in .gitattributes to survive it. Only the shebang path cares; PowerShell and C# do not.

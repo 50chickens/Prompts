@@ -8,6 +8,7 @@ Applies to every terminal command run by the agent.
 
 - Never prefix a command with `cd`. Scripts call `Set-Location $PSScriptRoot` themselves; run commands in place.
 - When running a powershell command just use exactly the & path_to_script.ps1. For scripts that are in the current folder use & .\script.ps1. for scripts that are above the current folder use the full path - eg & c:\somefolder\somescript.ps1.
+- A command is a script path followed by literal arguments and nothing else: no pipelines, no `;` chains, no inline `if`, no `$( )` subexpressions, no quoted-expression arguments. Work that needs any of those is a script, not a command line.
 - Never redirect or filter output: no `2>&1`, no `| head`, no `| tail`, no `>`, no `*>`, no `Out-File`.
 - Banned in commands: head, tail, grep, Select-String, Select-Object, Get-Content, find-content, and piping output into filters.
 - Never echo exit codes (`$LASTEXITCODE`, `$?`, `EXIT=...`).
@@ -17,7 +18,7 @@ Applies to every terminal command run by the agent.
 - Output volume must be bounded by the question, not by the size of the filesystem. A command whose output grows as the folder grows will eventually be unreadable, and it will be unreadable sooner than you expect.
 - Ask for the specific thing you need rather than the whole and then narrowing it. To learn one file's size or timestamp, query that file.
 - Do not pipe command output into cmdlets whose purpose is to reshape, reorder or summarise it for display: `Sort-Object`, `Format-Table`, `Format-List`, `Group-Object`, `Measure-Object`, `Where-Object`, `Select-Object`. Produce the right output the first time rather than reformatting it afterwards.
-- Do not build display strings by concatenating properties in a `ForEach-Object` block. That yields text where objects belong, so nothing downstream can be sorted or filtered correctly, and the output cannot be reused.
+- Do not build display strings by concatenating properties in a `|%` block. That yields text where objects belong, so nothing downstream can be sorted or filtered correctly, and the output cannot be reused.
 - No manual path arithmetic: no `Substring`, `Replace` or `-split` on `FullName` to shorten or compare a path. It is brittle, it breaks the moment a path depth changes, and it is unnecessary because the provider already exposes the name and the relative form.
 - Never use `| Out-Null`; use `$null = ...`.
 - Prefer PowerShell modules/cmdlets over command-line tools. If a suitable module does not exist, install it rather than shelling out.
@@ -26,15 +27,13 @@ Applies to every terminal command run by the agent.
 - Don't use `-ErrorAction SilentlyContinue` on writes or mutations.
 - Do not add fallbacks, workarounds, or graceful error handling. It is ok if things fail.
 - Do not scan for invalid items or collect them into a list for reporting later. 
-- Do not write files to disk for debugging during once off commands. if debugging is multi step create a script which follows the powershell skills for triage. 
+- A command that needs more than one statement goes in `tmp\probe.ps1` at the repo root, run as `& .\tmp\probe.ps1`. When it fails, edit that file and rerun the same command instead of retyping a command line. A probe that outlives its task is deleted or becomes a `psmodules` tool per `TOOLS.md`; `tmp` is untracked and holds no source.
 - A non-zero exit does not throw; the terminal reports the exit status, so don't add checks or echoes for it.
 - Don't use nested instances of powershell. eg if we are already running in a powershell terminal don't include pwsh in any form on the command line. 
 - reuse terminals as much as possible. Some terminals have a slow load time and this introduces problems with detecting when commands return, or it has output etc. 
 - Don't write temporary files for debugging purposes outside of the current working area ever. 
 - If you need to create working files and if the folder is a git repo - create a temp folder and then check/add for it in the .gitignore file. ask for permission to modify that. 
-- Don't use complex single line command lines that wraps a small task. This is boiler plate that can be used in ci.ps1 Invoke-PreflightCheck. See the powershell skill on where this should be added. 
-- This is an example of a complex single line command lines that wraps a small task that could go into Invoke-PreflightCheck
-     $ci='D:\git\PS-someFolder\ci'; foreach ($f in @('ci.ps1','build-test.ps1','invoke-application-tests.ps1')) { $e=$null; $null=[System.Management.Automation.Language.Parser]::ParseFile("$ci\$f",[ref]$null,[ref]$e); Write-Output "$f parse errors=$($e.Count)" }; Write-Output '--- build-test gate ---'; pwsh -NoProfile -File "$ci\build-test.ps1"; Write-Output "exit=$LASTEXITCODE"; Write-Output '--- app-tests gate ---'; pwsh -NoProfile -File "$ci\invoke-application-tests.ps1"; Write-Output "exit=$LASTEXITCODE". 
+- No complex single line command line. A command wraps one task; the moment it needs a loop, a variable, or a second statement it is a script.
 - If cli tools have a json output format use that. Eg for the AWS Cli use $buckets = (aws s3 list-buckets --output json) | ConvertFrom-Json. 
 - Capturing output json into a json means we can cut down on the number of calls, or repeated calls for similar things. Prefer returning all objects one time and then filtering/querying in memory to get the thing we're after. the exception is that if the list is excessively large.
 - If you find yourself repeatedly doing similar things - create a helper script with parameters. eg this is excellent example of wasted effort that could be scripted - 

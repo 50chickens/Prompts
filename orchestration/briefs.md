@@ -26,6 +26,7 @@ description too many, and the message is the one that goes stale first.
 6. **Ownership** - the two lists, plus the rule about stopping rather than editing.
 7. **Output** - the report path, and the instruction to append as you go.
 8. **Constraints** - languages allowed, tools forbidden, and where the primary sources live.
+9. **Reuse** - the `TOOLS.md` entries the lane invokes, named by path, or a statement that none exist. A lane that needs a missing tool reports it rather than writing a private script.
 
 The model identifier belongs at the top of the brief, spelled exactly as the project mandates it, with the
 instruction to echo it as the first line of the report stub.
